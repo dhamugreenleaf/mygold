@@ -606,16 +606,36 @@ export default function MoreScreen() {
             </View>
 
             {/* Live Computed Value Display */}
-            <View style={styles.calcResultBox}>
+            <View
+              style={[
+                styles.calcResultBox,
+                calcMetal === 'SILVER' && styles.calcResultBoxSilver,
+              ]}
+            >
               <View style={styles.calcResultLeft}>
-                <Text style={styles.calcResultLabel}>
+                <Text
+                  style={[
+                    styles.calcResultLabel,
+                    calcMetal === 'SILVER' && styles.calcResultLabelSilver,
+                  ]}
+                >
                   {t('calculatedEstValue')}
                 </Text>
-                <Text style={styles.calcResultFormula}>
+                <Text
+                  style={[
+                    styles.calcResultFormula,
+                    calcMetal === 'SILVER' && styles.calcResultFormulaSilver,
+                  ]}
+                >
                   {calcWeightNumber}g × {formatCurrency(activeRatePerGram)}/g
                 </Text>
               </View>
-              <Text style={styles.calcResultValue}>
+              <Text
+                style={[
+                  styles.calcResultValue,
+                  calcMetal === 'SILVER' && styles.calcResultValueSilver,
+                ]}
+              >
                 {formatCurrency(calculatedValue)}
               </Text>
             </View>
@@ -625,7 +645,7 @@ export default function MoreScreen() {
               <Feather
                 name="info"
                 size={14}
-                color={darkTheme.colors.gold}
+                color={calcMetal === 'SILVER' ? '#CBD5E1' : darkTheme.colors.gold}
                 style={{ marginTop: 2 }}
               />
               <Text style={styles.disclaimerNoteText}>
@@ -678,47 +698,30 @@ export default function MoreScreen() {
         {/* 6. APP / LEGAL & SECURITY INFORMATION                */}
         {/* ==================================================== */}
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderLeft}>
-              <Feather name="shield" size={16} color={darkTheme.colors.gold} />
-              <Text style={styles.cardHeaderTitle}>{t('termsAndConditions')}</Text>
-            </View>
-          </View>
-
-          <View style={styles.cardBody}>
-            {/* Security Notice Line */}
-            <View style={styles.securityStatementRow}>
-              <Feather
-                name="lock"
-                size={16}
-                color={darkTheme.colors.profit}
-                style={{ marginTop: 2 }}
-              />
-              <Text style={styles.securityStatementText}>
-                {t('vaultSecurityNotice')}
-              </Text>
+          <TouchableOpacity
+            style={styles.termsCardContent}
+            onPress={() => setShowTermsModal(true)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={t('termsAndConditions')}
+          >
+            <View style={styles.termsHeaderRow}>
+              <View style={styles.termsIconBox}>
+                <Feather name="file-text" size={18} color={darkTheme.colors.gold} />
+              </View>
+              <View style={styles.termsTextCol}>
+                <Text style={styles.termsCardTitle}>{t('termsAndConditions')}</Text>
+                <Text style={styles.termsCardSubtitle}>{t('termsSubtitle')}</Text>
+              </View>
             </View>
 
             <View style={styles.divider} />
 
-            {/* View Terms Button */}
-            <TouchableOpacity
-              style={styles.viewTermsRow}
-              onPress={() => setShowTermsModal(true)}
-              accessibilityRole="button"
-              accessibilityLabel={t('viewTerms')}
-            >
-              <View style={styles.viewTermsLeft}>
-                <Feather name="file-text" size={16} color={darkTheme.colors.gold} />
-                <Text style={styles.viewTermsText}>{t('termsAndConditions')}</Text>
-              </View>
-              <Feather
-                name="chevron-right"
-                size={16}
-                color={darkTheme.colors.textMuted}
-              />
-            </TouchableOpacity>
-          </View>
+            <View style={styles.viewTermsAction}>
+              <Text style={styles.viewTermsActionText}>{t('viewTerms')}</Text>
+              <Feather name="arrow-right" size={14} color={darkTheme.colors.gold} />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* ==================================================== */}
@@ -1383,6 +1386,19 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#FBBF24',
   },
+  calcResultBoxSilver: {
+    backgroundColor: 'rgba(203, 213, 225, 0.08)',
+    borderColor: 'rgba(203, 213, 225, 0.35)',
+  },
+  calcResultLabelSilver: {
+    color: '#CBD5E1',
+  },
+  calcResultFormulaSilver: {
+    color: '#94A3B8',
+  },
+  calcResultValueSilver: {
+    color: '#F8FAFC',
+  },
   disclaimerNoteRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1472,19 +1488,48 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: '500',
   },
-  viewTermsRow: {
+  termsCardContent: {
+    padding: 16,
+  },
+  termsHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
+    gap: 12,
   },
-  viewTermsLeft: {
+  termsIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(232, 179, 49, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(232, 179, 49, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  termsTextCol: {
+    flex: 1,
+  },
+  termsCardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: darkTheme.colors.textPrimary,
+    letterSpacing: 0.3,
+  },
+  termsCardSubtitle: {
+    fontSize: 11,
+    color: darkTheme.colors.textMuted,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  viewTermsAction: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'flex-end',
+    gap: 6,
+    paddingTop: 12,
   },
-  viewTermsText: {
-    fontSize: 13,
+  viewTermsActionText: {
+    fontSize: 12,
     fontWeight: '700',
     color: darkTheme.colors.gold,
   },

@@ -9,9 +9,9 @@ export const AUTH_TOKEN_KEY = 'aurum_token';
 export const AUTH_USER_KEY = 'aurum_user';
 
 export const getApiBaseUrl = () => {
-  // 1. Use Expo public environment variable if defined
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
+  // 1. Web browser: Use current host
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.hostname) {
+    return `http://${window.location.hostname}:5010/api`;
   }
 
   // 2. Dynamic host detection from Metro bundle scriptURL in development
@@ -27,7 +27,12 @@ export const getApiBaseUrl = () => {
     // Fall back to platform defaults
   }
 
-  // 3. Android fallback: Wi-Fi host machine IP
+  // 3. Use Expo public environment variable if defined
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 4. Android fallback: Wi-Fi host machine IP
   if (Platform.OS === 'android') {
     return 'http://10.60.41.164:5010/api';
   }

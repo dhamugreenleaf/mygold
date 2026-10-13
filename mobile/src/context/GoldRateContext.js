@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getRates } from '../services/portfolioService';
+
+const CACHED_RATES_KEY = '@aurum_cached_rates';
 
 export const GoldRateContext = createContext({
   ratesData: null,
@@ -24,18 +27,42 @@ export const GoldRateProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Load last known cached rates immediately on startup to provide instant UX
+  useEffect(() => {
+    let isMounted = true;
+    const loadCachedRates = async () => {
+      try {
+        const cached = await AsyncStorage.getItem(CACHED_RATES_KEY);
+        if (cached && isMounted) {
+          const parsed = JSON.parse(cached);
+          setRatesData((prev) => prev || parsed);
+        }
+      } catch {
+        // Cache read fallback ignored
+      }
+    };
+    loadCachedRates();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const fetchRates = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsLoading(true);
     try {
       setError(null);
       const res = await getRates();
-      if (res?.data) {
-        setRatesData(res.data);
-      } else if (res?.rates) {
-        setRatesData(res);
+      const payload = res?.data || (res?.rates ? res : null);
+      if (payload) {
+        setRatesData(payload);
+        try {
+          await AsyncStorage.setItem(CACHED_RATES_KEY, JSON.stringify(payload));
+        } catch {
+          // Cache write fallback ignored
+        }
       }
     } catch (err) {
-      console.error('[GoldRateContext] Failed to fetch live bullion rates:', err?.message || err);
+      console.warn('[GoldRateContext] Failed to fetch live bullion rates:', err?.message || err);
       setError('Unable to fetch live Chennai bullion rates.');
     } finally {
       setIsLoading(false);

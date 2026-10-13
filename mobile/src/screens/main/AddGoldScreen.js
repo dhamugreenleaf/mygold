@@ -861,18 +861,18 @@ export default function AddGoldScreen({ navigation }) {
             <Text style={styles.modalTitle}>10 Free Entries Reached</Text>
             <Text style={styles.modalSubtitle}>
               You have used all 10 free Gold and Silver entries in your starter vault.
-              To record additional bullion and invoices, please check subscription options on the web dashboard.
+              Upgrade to Premium Monthly for only ₹10/month to unlock unlimited records and receipt storage.
             </Text>
 
             <TouchableOpacity
               onPress={() => {
                 setShowUpgradeModal(false);
-                navigation.navigate('MyGold');
+                navigation.navigate('Profile');
               }}
               activeOpacity={0.88}
-              style={{ width: '100%' }}
+              style={{ width: '100%', marginBottom: 10 }}
               accessibilityRole="button"
-              accessibilityLabel="Return to MyGold Vault"
+              accessibilityLabel="Upgrade to Premium"
             >
               <LinearGradient
                 colors={gradientPresets.goldMetallic}
@@ -880,8 +880,21 @@ export default function AddGoldScreen({ navigation }) {
                 end={{ x: 1, y: 1 }}
                 style={styles.modalReturnBtn}
               >
-                <Text style={styles.modalReturnBtnText}>Return to Vault</Text>
+                <Text style={styles.modalReturnBtnText}>Upgrade to Premium (₹10/mo)</Text>
               </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setShowUpgradeModal(false);
+                navigation.navigate('MyGold');
+              }}
+              activeOpacity={0.7}
+              style={{ paddingVertical: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Return to MyGold Vault"
+            >
+              <Text style={{ fontSize: 13, fontWeight: '700', color: darkTheme.colors.textMuted }}>Return to Vault</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>

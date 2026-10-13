@@ -25,6 +25,9 @@ import profileService from '../../services/profileService';
 import { getPurchases } from '../../services/portfolioService';
 import OtpInput from '../../components/forms/OtpInput';
 import TermsModal from '../../components/common/TermsModal';
+import ConfirmModal from '../../components/common/ConfirmModal';
+import RazorpayCheckoutModal from '../../components/common/RazorpayCheckoutModal';
+import { useToast } from '../../context/ToastContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { gradientPresets } from '../../constants/colors';
 
@@ -34,10 +37,13 @@ const RESEND_COOLDOWN_SECONDS = 30;
 export default function ProfileScreen({ navigation }) {
   const { user, logout, refreshUser, updateUser } = useAuth();
   const { t, language, setLanguage, isTamil } = useLanguage();
+  const { showSuccess, showError, showInfo } = useToast();
 
   // Screen Data State
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
   const [assetCount, setAssetCount] = useState(0);
   const [entitlement, setEntitlement] = useState(null);
 
@@ -51,6 +57,7 @@ export default function ProfileScreen({ navigation }) {
 
   // Upgrade Info Modal State
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showRazorpayModal, setShowRazorpayModal] = useState(false);
 
   // Edit Profile Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -277,7 +284,7 @@ export default function ProfileScreen({ navigation }) {
           await refreshUser();
         }
         setShowEditModal(false);
-        Alert.alert('Success', 'Profile updated successfully.');
+        showSuccess('Profile updated successfully.');
         loadProfileData();
       } else {
         setEditError(res.message || 'Invalid or expired OTP');
@@ -350,7 +357,7 @@ export default function ProfileScreen({ navigation }) {
           await refreshUser();
         }
         setShowMobileModal(false);
-        Alert.alert('Success', 'Mobile number updated successfully.');
+        showSuccess('Mobile number updated successfully.');
         loadProfileData();
       } else {
         setMobileError(res.message || 'Invalid or expired OTP');
@@ -370,12 +377,12 @@ export default function ProfileScreen({ navigation }) {
       setSubActionLoading(true);
       const res = await profileService.pauseSubscription();
       setShowPauseConfirm(false);
-      Alert.alert('AutoPay Paused', res.message || 'Recurring payments are paused.');
+      showInfo(res.message || 'Recurring payments are paused.', 'AutoPay Paused');
       await refreshUser();
       const entRes = await profileService.getSubscriptionStatus();
       if (entRes?.data) setEntitlement(entRes.data);
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to pause AutoPay');
+      showError(err.message || 'Failed to pause AutoPay', 'Error');
     } finally {
       setSubActionLoading(false);
     }
@@ -385,12 +392,12 @@ export default function ProfileScreen({ navigation }) {
     try {
       setSubActionLoading(true);
       const res = await profileService.resumeSubscription();
-      Alert.alert('AutoPay Resumed', res.message || 'Monthly recurring AutoPay is now active.');
+      showSuccess(res.message || 'Monthly recurring AutoPay is now active.', 'AutoPay Resumed');
       await refreshUser();
       const entRes = await profileService.getSubscriptionStatus();
       if (entRes?.data) setEntitlement(entRes.data);
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to resume AutoPay');
+      showError(err.message || 'Failed to resume AutoPay', 'Error');
     } finally {
       setSubActionLoading(false);
     }
@@ -401,15 +408,15 @@ export default function ProfileScreen({ navigation }) {
       setSubActionLoading(true);
       const res = await profileService.cancelSubscription();
       setShowCancelConfirm(false);
-      Alert.alert(
-        'AutoPay Cancelled',
-        res.message || 'AutoPay cancelled. You will maintain access until the end of your billing cycle.'
+      showInfo(
+        res.message || 'AutoPay cancelled. You will maintain access until the end of your billing cycle.',
+        'AutoPay Cancelled'
       );
       await refreshUser();
       const entRes = await profileService.getSubscriptionStatus();
       if (entRes?.data) setEntitlement(entRes.data);
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to cancel AutoPay');
+      showError(err.message || 'Failed to cancel AutoPay', 'Error');
     } finally {
       setSubActionLoading(false);
     }
@@ -423,12 +430,12 @@ export default function ProfileScreen({ navigation }) {
       setNotifLoading(true);
       const res = await profileService.toggleNotificationPreference(value);
       setNotificationsEnabled(value);
-      Alert.alert(
-        'Notification Preference',
-        value ? 'Daily rate and portfolio alerts enabled.' : 'Notifications disabled.'
+      showSuccess(
+        value ? 'Daily rate and portfolio alerts enabled.' : 'Notifications disabled.',
+        'Notification Preference'
       );
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to update notification setting');
+      showError(err.message || 'Failed to update notification setting', 'Error');
     } finally {
       setNotifLoading(false);
     }
@@ -438,12 +445,12 @@ export default function ProfileScreen({ navigation }) {
     try {
       setNotifTesting(true);
       const res = await profileService.sendTestNotification();
-      Alert.alert('Notification Test', res.message || 'Test notification sent successfully.');
+      showSuccess(res.message || 'Test notification sent successfully.', 'Notification Test');
     } catch (err) {
       // Catch cleanly when native device token is not registered yet
-      Alert.alert(
-        'Notification Test',
-        'Notification preference is active. Device push registration is configured on native builds.'
+      showInfo(
+        'Notification preference is active. Device push registration is configured on native builds.',
+        'Notification Test'
       );
     } finally {
       setNotifTesting(false);
@@ -451,27 +458,56 @@ export default function ProfileScreen({ navigation }) {
   };
 
   // ==========================================
+  // IN-APP RAZORPAY UPGRADE HANDLERS
+  // ==========================================
+  const handleOpenRazorpayModal = () => {
+    setShowUpgradeModal(false);
+    setShowRazorpayModal(true);
+  };
+
+  const handlePaymentSuccess = async (res) => {
+    setShowRazorpayModal(false);
+    setShowUpgradeModal(false);
+    if (res?.alreadyActive) {
+      showSuccess(
+        isTamil
+          ? 'உங்களிடம் ஏற்கனவே பிரீமியம் திட்டம் செயலில் உள்ளது!'
+          : 'You already have an active Premium Subscription!',
+        'Premium Vault'
+      );
+    } else {
+      showSuccess(
+        isTamil
+          ? 'பிரீமியம் திட்டம் வெற்றிகரமாக செயல்படுத்தப்பட்டது! 👑'
+          : 'Monthly Premium AutoPay active! Unlimited entries unlocked. 👑',
+        'Upgrade Complete'
+      );
+    }
+    try {
+      if (typeof refreshUser === 'function') {
+        await refreshUser();
+      }
+    } catch {}
+    loadProfileData();
+  };
+
+  // ==========================================
   // LOGOUT
   // ==========================================
   const handleLogoutPress = () => {
-    Alert.alert(
-      'Lock Vault & Logout',
-      'Are you sure you want to lock your physical gold vault and log out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout();
-            } catch (err) {
-              console.warn('Logout error:', err?.message);
-            }
-          },
-        },
-      ]
-    );
+    setShowLogoutConfirm(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    try {
+      setLogoutLoading(true);
+      await logout();
+      setShowLogoutConfirm(false);
+    } catch (err) {
+      showError(err?.message || 'Failed to log out.', 'Logout Error');
+    } finally {
+      setLogoutLoading(false);
+    }
   };
 
   return (
@@ -832,44 +868,44 @@ export default function ProfileScreen({ navigation }) {
                   </View>
 
                   <View style={styles.notifTextCol}>
-                    <View style={styles.notifStatusBadgeRow}>
-                      <Text style={styles.notifTitle}>{t('pushNotifications')}</Text>
-                      <View
-                        style={[
-                          styles.notifTag,
-                          notificationsEnabled
-                            ? styles.notifTagActive
-                            : styles.notifTagDisabled,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.notifTagText,
-                            notificationsEnabled
-                              ? styles.notifTagTextActive
-                              : styles.notifTagTextDisabled,
-                          ]}
-                        >
-                          {notificationsEnabled ? t('active') : t('disabled')}
-                        </Text>
-                      </View>
-                    </View>
+                    <Text style={styles.notifTitle}>{t('pushNotifications')}</Text>
                     <Text style={styles.notifSubtitle}>
                       {t('notificationsSubtitle')}
                     </Text>
                   </View>
                 </View>
 
-                <Switch
-                  value={notificationsEnabled}
-                  onValueChange={handleToggleNotifications}
-                  disabled={notifLoading}
-                  trackColor={{
-                    false: '#262D3D',
-                    true: darkTheme.colors.gold,
-                  }}
-                  thumbColor="#FFFFFF"
-                />
+                <View style={styles.notifRightCol}>
+                  <Switch
+                    value={notificationsEnabled}
+                    onValueChange={handleToggleNotifications}
+                    disabled={notifLoading}
+                    trackColor={{
+                      false: '#262D3D',
+                      true: darkTheme.colors.gold,
+                    }}
+                    thumbColor="#FFFFFF"
+                  />
+                  <View
+                    style={[
+                      styles.notifTag,
+                      notificationsEnabled
+                        ? styles.notifTagActive
+                        : styles.notifTagDisabled,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.notifTagText,
+                        notificationsEnabled
+                          ? styles.notifTagTextActive
+                          : styles.notifTagTextDisabled,
+                      ]}
+                    >
+                      {notificationsEnabled ? t('active') : t('disabled')}
+                    </Text>
+                  </View>
+                </View>
               </View>
 
               {notificationsEnabled && (
@@ -1489,7 +1525,7 @@ export default function ProfileScreen({ navigation }) {
       </Modal>
 
       {/* ==================================================== */}
-      {/* UPGRADE INFORMATION MODAL (NO RAZORPAY INJECTED)      */}
+      {/* UPGRADE MODAL WITH DIRECT RAZORPAY AUTOPAY           */}
       {/* ==================================================== */}
       <Modal
         visible={showUpgradeModal}
@@ -1510,33 +1546,66 @@ export default function ProfileScreen({ navigation }) {
             </Text>
 
             <View style={styles.upgradePriceBox}>
-              <Text style={styles.upgradePriceValue}>₹199 / month</Text>
+              <Text style={styles.upgradePriceValue}>₹10 / month</Text>
               <Text style={styles.upgradePriceSub}>Cancel or pause anytime with 1-click</Text>
             </View>
 
-            <Text style={styles.upgradeNoticeText}>
-              To activate monthly AutoPay, please log in through the MyGold web portal.
-            </Text>
+            <View style={styles.upgradeFeaturesList}>
+              <View style={styles.upgradeFeatureRow}>
+                <Feather name="check-circle" size={14} color={darkTheme.colors.profit} />
+                <Text style={styles.upgradeFeatureText}>Unlimited Gold & Silver asset entries</Text>
+              </View>
+              <View style={styles.upgradeFeatureRow}>
+                <Feather name="check-circle" size={14} color={darkTheme.colors.profit} />
+                <Text style={styles.upgradeFeatureText}>Live portfolio gain/loss tracking</Text>
+              </View>
+              <View style={styles.upgradeFeatureRow}>
+                <Feather name="check-circle" size={14} color={darkTheme.colors.profit} />
+                <Text style={styles.upgradeFeatureText}>Receipt & bill cloud backup</Text>
+              </View>
+            </View>
 
             <TouchableOpacity
-              onPress={() => setShowUpgradeModal(false)}
+              onPress={handleOpenRazorpayModal}
               activeOpacity={0.88}
-              style={{ width: '100%' }}
+              style={{ width: '100%', marginBottom: 10 }}
               accessibilityRole="button"
-              accessibilityLabel="Got it"
+              accessibilityLabel="Pay ₹10 & Activate AutoPay with Razorpay"
             >
               <LinearGradient
                 colors={gradientPresets.goldMetallic}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={styles.upgradeCloseButton}
+                style={styles.upgradePayButton}
               >
-                <Text style={styles.upgradeCloseButtonText}>Got It</Text>
+                <Feather name="zap" size={16} color="#080B12" />
+                <Text style={styles.upgradePayButtonText}>Pay ₹10 & Activate AutoPay</Text>
               </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setShowUpgradeModal(false)}
+              activeOpacity={0.7}
+              style={styles.upgradeCancelButton}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+            >
+              <Text style={styles.upgradeCancelButtonText}>Cancel</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* ==================================================== */}
+      {/* IN-APP RAZORPAY CHECKOUT MODAL                       */}
+      {/* ==================================================== */}
+      <RazorpayCheckoutModal
+        isOpen={showRazorpayModal}
+        onClose={() => setShowRazorpayModal(false)}
+        onSuccess={handlePaymentSuccess}
+        user={user}
+        price={10}
+      />
 
       {/* ==================================================== */}
       {/* TERMS & CONDITIONS MODAL                             */}
@@ -1544,6 +1613,20 @@ export default function ProfileScreen({ navigation }) {
       <TermsModal
         isOpen={showTermsModal}
         onClose={() => setShowTermsModal(false)}
+      />
+
+      {/* ==================================================== */}
+      {/* LOGOUT CONFIRMATION MODAL                            */}
+      {/* ==================================================== */}
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        title="Lock Vault & Logout"
+        message="Are you sure you want to lock your physical gold vault and log out?"
+        confirmText="Logout"
+        cancelText="Cancel"
+        loading={logoutLoading}
+        onConfirm={handleConfirmLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
       />
     </SafeAreaView>
   );
@@ -1941,13 +2024,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
   },
   notifLeft: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
     flex: 1,
-    paddingRight: 10,
+    paddingRight: 6,
   },
   notifIconCircle: {
     width: 36,
@@ -1966,21 +2050,26 @@ const styles = StyleSheet.create({
   notifTextCol: {
     flex: 1,
   },
-  notifStatusBadgeRow: {
-    flexDirection: 'row',
+  notifRightCol: {
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
+    justifyContent: 'center',
+    gap: 4,
+    minWidth: 84,
+    flexShrink: 0,
   },
   notifTitle: {
     fontSize: 14,
     fontWeight: '700',
     color: darkTheme.colors.textPrimary,
+    marginBottom: 2,
   },
   notifTag: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 78,
   },
   notifTagActive: {
     backgroundColor: darkTheme.colors.profitBg,
@@ -1989,7 +2078,7 @@ const styles = StyleSheet.create({
     backgroundColor: darkTheme.colors.backgroundSubtle,
   },
   notifTagText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
   },
   notifTagTextActive: {
@@ -2485,24 +2574,48 @@ const styles = StyleSheet.create({
     color: darkTheme.colors.textMuted,
     fontWeight: '600',
   },
-  upgradeNoticeText: {
-    fontSize: 11,
-    color: darkTheme.colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 16,
-    marginBottom: 18,
-  },
-  upgradeCloseButton: {
+  upgradeFeaturesList: {
     width: '100%',
-    height: 46,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    marginBottom: 16,
+  },
+  upgradeFeatureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  upgradeFeatureText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: darkTheme.colors.textSecondary,
+  },
+  upgradePayButton: {
+    width: '100%',
+    height: 48,
     borderRadius: 14,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     ...darkTheme.shadows.button,
   },
-  upgradeCloseButtonText: {
+  upgradePayButtonText: {
     fontSize: 14,
     fontWeight: '800',
     color: '#080B12',
+  },
+  upgradeCancelButton: {
+    width: '100%',
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upgradeCancelButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: darkTheme.colors.textMuted,
   },
 });

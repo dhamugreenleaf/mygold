@@ -13,6 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import useAuth from '../../hooks/useAuth';
 import useGoldRate from '../../hooks/useGoldRate';
+import { useLanguage } from '../../context/LanguageContext';
 import { getPortfolio } from '../../services/portfolioService';
 import { formatCurrency, formatGrams } from '../../utils/formatters';
 import { darkTheme } from '../../constants/theme';
@@ -20,6 +21,7 @@ import { gradientPresets } from '../../constants/colors';
 
 export default function HomeScreen({ navigation }) {
   const { user } = useAuth();
+  const { t, language } = useLanguage();
   const {
     rate24K,
     rate22K,
@@ -51,7 +53,7 @@ export default function HomeScreen({ navigation }) {
         setPortfolioData(res);
       }
     } catch (err) {
-      console.error('[HomeScreen] Failed to fetch portfolio:', err?.message || err);
+      console.warn('[HomeScreen] Failed to fetch portfolio:', err?.message || err);
       setError('Unable to load your vault. Please check your connection.');
     } finally {
       setLoading(false);
@@ -139,59 +141,59 @@ export default function HomeScreen({ navigation }) {
   const goldRatesList = useMemo(
     () => [
       {
-        name: '24 Karat Pure Gold',
+        name: t('twentyFourKarat'),
         purity: '99.9%',
         badge: '24K',
         rate: rate24K,
         pounRate: rate24K * 8,
       },
       {
-        name: '22 Karat Standard Gold',
+        name: t('twentyTwoKarat'),
         purity: '91.6%',
         badge: '22K',
         rate: rate22K,
         pounRate: rate22K * 8,
       },
       {
-        name: '18 Karat Jewellery Gold',
+        name: t('eighteenKarat'),
         purity: '75.0%',
         badge: '18K',
         rate: rate18K,
         pounRate: rate18K * 8,
       },
     ],
-    [rate24K, rate22K, rate18K]
+    [rate24K, rate22K, rate18K, t]
   );
 
   // Silver rates list
   const silverRatesList = useMemo(
     () => [
       {
-        name: 'Fine Silver 999',
+        name: t('fineSilver999'),
         purity: '99.9%',
         badge: '999',
         rate: silverRate,
       },
       {
-        name: 'Sterling Silver 925',
+        name: t('sterlingSilver925'),
         purity: '92.5%',
         badge: '925',
         rate: silverRate925,
       },
       {
-        name: 'Hallmark Silver 916',
+        name: t('hallmarkSilver916'),
         purity: '91.6%',
         badge: '916',
         rate: silverRate916,
       },
       {
-        name: 'Jewellery Silver 900',
+        name: t('jewellerySilver900'),
         purity: '90.0%',
         badge: '900',
         rate: silverRate900,
       },
     ],
-    [silverRate, silverRate925, silverRate916, silverRate900]
+    [silverRate, silverRate925, silverRate916, silverRate900, t]
   );
 
   // Full Screen Error State if portfolio fails completely
@@ -252,9 +254,9 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.headerRow}>
           <View style={styles.headerTextContainer}>
             <Text style={styles.welcomeText}>
-              Hello, {user?.username || 'Investor'}
+              {t('helloUser', { name: user?.username || t('investor') })}
             </Text>
-            <Text style={styles.vaultTitle}>Your Vault</Text>
+            <Text style={styles.vaultTitle}>{t('yourVault')}</Text>
           </View>
           <TouchableOpacity
             style={styles.refreshButton}
@@ -283,7 +285,7 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.heroCard}>
               <View style={styles.heroBadge}>
                 <Text style={styles.heroBadgeSparkle}>✨</Text>
-                <Text style={styles.heroBadgeText}>TOTAL CURRENT VAULT VALUE</Text>
+                <Text style={styles.heroBadgeText}>{t('totalCurrentGoldValue')}</Text>
               </View>
 
               <Text style={styles.heroValueText}>
@@ -293,8 +295,8 @@ export default function HomeScreen({ navigation }) {
               {/* Breakdown Pills: Total Amount Paid & Estimated Gain/Loss */}
               <View style={styles.breakdownRow}>
                 <View style={styles.breakdownPill}>
-                  <Text style={styles.breakdownLabel} numberOfLines={1}>
-                    Total Amount Paid
+                  <Text style={styles.breakdownLabel} numberOfLines={2}>
+                    {t('totalAmountPaid')}
                   </Text>
                   <Text style={styles.breakdownValue} numberOfLines={1}>
                     {formatCurrency(liveSummary.total_invested)}
@@ -302,8 +304,8 @@ export default function HomeScreen({ navigation }) {
                 </View>
 
                 <View style={styles.breakdownPill}>
-                  <Text style={styles.breakdownLabel} numberOfLines={1}>
-                    Estimated Gain/Loss
+                  <Text style={styles.breakdownLabel} numberOfLines={2}>
+                    {t('estimatedGainLoss')}
                   </Text>
                   {(() => {
                     const profit = liveSummary.total_profit;
@@ -335,7 +337,7 @@ export default function HomeScreen({ navigation }) {
 
               {/* Advisory Resale Note */}
               <Text style={styles.advisoryNote}>
-                Note: Actual resale amount may vary depending on the jeweller's buyback rate, purity verification, weight and applicable deductions.
+                {t('resaleAdvisoryNote')}
               </Text>
             </View>
 
@@ -353,12 +355,12 @@ export default function HomeScreen({ navigation }) {
                     <Text style={styles.medalEmoji}>🥇</Text>
                   </LinearGradient>
                   <View style={styles.splitCardMeta}>
-                    <Text style={styles.splitCardLabel}>Gold Asset</Text>
+                    <Text style={styles.splitCardLabel}>{t('goldAsset')}</Text>
                     <Text style={styles.splitCardValue} numberOfLines={1}>
                       {formatCurrency(liveSummary.gold.currentValue)}
                     </Text>
                     <Text style={styles.splitCardWeight} numberOfLines={1}>
-                      {formatGrams(liveSummary.gold.weight)}
+                      {formatGrams(liveSummary.gold.weight, language)}
                     </Text>
                   </View>
                 </View>
@@ -376,12 +378,12 @@ export default function HomeScreen({ navigation }) {
                     <Text style={styles.medalEmoji}>🥈</Text>
                   </LinearGradient>
                   <View style={styles.splitCardMeta}>
-                    <Text style={styles.splitCardLabel}>Silver Asset</Text>
+                    <Text style={styles.splitCardLabel}>{t('silverAsset')}</Text>
                     <Text style={styles.splitCardValue} numberOfLines={1}>
                       {formatCurrency(liveSummary.silver.currentValue)}
                     </Text>
                     <Text style={styles.splitCardWeight} numberOfLines={1}>
-                      {formatGrams(liveSummary.silver.weight)}
+                      {formatGrams(liveSummary.silver.weight, language)}
                     </Text>
                   </View>
                 </View>
@@ -404,7 +406,7 @@ export default function HomeScreen({ navigation }) {
                   style={styles.primaryActionGradient}
                 >
                   <Feather name="plus" size={18} color="#080B12" style={styles.actionButtonIcon} />
-                  <Text style={styles.primaryActionText}>+ Add Asset</Text>
+                  <Text style={styles.primaryActionText}>{t('addAsset')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
 
@@ -414,16 +416,16 @@ export default function HomeScreen({ navigation }) {
                 accessibilityRole="button"
                 accessibilityLabel="View vault details"
               >
-                <Text style={styles.secondaryActionText}>Vault Details</Text>
+                <Text style={styles.secondaryActionText}>{t('vaultDetails')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* 5. Live Market Rates Section */}
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeader}>
-                <View>
-                  <Text style={styles.sectionTitle}>Chennai Live Gold & Silver Rates</Text>
-                  <Text style={styles.sectionSubtitle}>Live bullion quotes per gram</Text>
+                <View style={styles.sectionTitleCol}>
+                  <Text style={styles.sectionTitle}>{t('chennaiRatesTitle')}</Text>
+                  <Text style={styles.sectionSubtitle}>{t('chennaiRatesSubtitle')}</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('More')}
@@ -431,7 +433,7 @@ export default function HomeScreen({ navigation }) {
                   accessibilityLabel="View full market rates in More"
                   style={styles.linkButton}
                 >
-                  <Text style={styles.linkButtonText}>Full Market</Text>
+                  <Text style={styles.linkButtonText}>{t('fullMarket')}</Text>
                   <Feather name="arrow-right" size={14} color={darkTheme.colors.gold} />
                 </TouchableOpacity>
               </View>
@@ -452,23 +454,35 @@ export default function HomeScreen({ navigation }) {
                       end={{ x: 1, y: 1 }}
                       style={styles.segmentTabActiveGradient}
                     >
-                      <Text style={styles.segmentEmoji}>🥇</Text>
-                      <Text style={styles.segmentTextActiveDark}>Gold Rates</Text>
-                      {rate24K > 0 && (
-                        <Text style={styles.segmentSubtextDark}>
-                          ({formatCurrency(rate24K)}/g)
-                        </Text>
-                      )}
+                      <View style={styles.segmentTabInner}>
+                        <View style={styles.segmentTabHeader}>
+                          <Text style={styles.segmentEmoji}>🥇</Text>
+                          <Text style={styles.segmentTextActiveDark} numberOfLines={1}>
+                            {t('goldRatesTab')}
+                          </Text>
+                        </View>
+                        {rate24K > 0 && (
+                          <Text style={styles.segmentSubtextDark} numberOfLines={1}>
+                            ({formatCurrency(rate24K)}/g)
+                          </Text>
+                        )}
+                      </View>
                     </LinearGradient>
                   ) : (
                     <View style={styles.segmentTabInactiveContent}>
-                      <Text style={styles.segmentEmoji}>🥇</Text>
-                      <Text style={styles.segmentTextInactive}>Gold Rates</Text>
-                      {rate24K > 0 && (
-                        <Text style={styles.segmentSubtextLight}>
-                          ({formatCurrency(rate24K)}/g)
-                        </Text>
-                      )}
+                      <View style={styles.segmentTabInner}>
+                        <View style={styles.segmentTabHeader}>
+                          <Text style={styles.segmentEmoji}>🥇</Text>
+                          <Text style={styles.segmentTextInactive} numberOfLines={1}>
+                            {t('goldRatesTab')}
+                          </Text>
+                        </View>
+                        {rate24K > 0 && (
+                          <Text style={styles.segmentSubtextLight} numberOfLines={1}>
+                            ({formatCurrency(rate24K)}/g)
+                          </Text>
+                        )}
+                      </View>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -487,23 +501,35 @@ export default function HomeScreen({ navigation }) {
                       end={{ x: 1, y: 1 }}
                       style={styles.segmentTabActiveGradient}
                     >
-                      <Text style={styles.segmentEmoji}>🥈</Text>
-                      <Text style={styles.segmentTextActiveDark}>Silver Rates</Text>
-                      {silverRate > 0 && (
-                        <Text style={styles.segmentSubtextDark}>
-                          ({formatCurrency(silverRate)}/g)
-                        </Text>
-                      )}
+                      <View style={styles.segmentTabInner}>
+                        <View style={styles.segmentTabHeader}>
+                          <Text style={styles.segmentEmoji}>🥈</Text>
+                          <Text style={styles.segmentTextActiveDark} numberOfLines={1}>
+                            {t('silverRatesTab')}
+                          </Text>
+                        </View>
+                        {silverRate > 0 && (
+                          <Text style={styles.segmentSubtextDark} numberOfLines={1}>
+                            ({formatCurrency(silverRate)}/g)
+                          </Text>
+                        )}
+                      </View>
                     </LinearGradient>
                   ) : (
                     <View style={styles.segmentTabInactiveContent}>
-                      <Text style={styles.segmentEmoji}>🥈</Text>
-                      <Text style={styles.segmentTextInactive}>Silver Rates</Text>
-                      {silverRate > 0 && (
-                        <Text style={styles.segmentSubtextLight}>
-                          ({formatCurrency(silverRate)}/g)
-                        </Text>
-                      )}
+                      <View style={styles.segmentTabInner}>
+                        <View style={styles.segmentTabHeader}>
+                          <Text style={styles.segmentEmoji}>🥈</Text>
+                          <Text style={styles.segmentTextInactive} numberOfLines={1}>
+                            {t('silverRatesTab')}
+                          </Text>
+                        </View>
+                        {silverRate > 0 && (
+                          <Text style={styles.segmentSubtextLight} numberOfLines={1}>
+                            ({formatCurrency(silverRate)}/g)
+                          </Text>
+                        )}
+                      </View>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -597,14 +623,16 @@ export default function HomeScreen({ navigation }) {
             {/* 6. Recent Assets Section */}
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Additions</Text>
+                <View style={styles.sectionTitleCol}>
+                  <Text style={styles.sectionTitle}>{t('recentAdditions')}</Text>
+                </View>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('MyGold')}
                   accessibilityRole="button"
                   accessibilityLabel="See all assets in vault"
                   style={styles.linkButton}
                 >
-                  <Text style={styles.linkButtonText}>See All</Text>
+                  <Text style={styles.linkButtonText}>{t('seeAll')}</Text>
                   <Feather name="arrow-right" size={14} color={darkTheme.colors.gold} />
                 </TouchableOpacity>
               </View>
@@ -645,10 +673,10 @@ export default function HomeScreen({ navigation }) {
                             <Text style={styles.assetName} numberOfLines={1}>
                               {purchase.gold_name ||
                                 purchase.item_name ||
-                                (isSilver ? 'Silver Asset' : 'Gold Asset')}
+                                (isSilver ? t('silverAsset') : t('goldAsset'))}
                             </Text>
                             <Text style={styles.assetSubtitle}>
-                              {purity} • {formatGrams(weight)}
+                              {purity} • {formatGrams(weight, language)}
                             </Text>
                           </View>
                         </View>
@@ -681,9 +709,9 @@ export default function HomeScreen({ navigation }) {
                   <View style={styles.emptyVaultIconCircle}>
                     <Text style={styles.emptyVaultEmoji}>📦</Text>
                   </View>
-                  <Text style={styles.emptyVaultTitle}>Your vault is empty</Text>
+                  <Text style={styles.emptyVaultTitle}>{t('emptyVaultTitle')}</Text>
                   <Text style={styles.emptyVaultSubtitle}>
-                    Start tracking your gold and silver assets with live valuation.
+                    {t('emptyVaultSubtitle')}
                   </Text>
                   <TouchableOpacity
                     style={styles.emptyAddButton}
@@ -692,7 +720,7 @@ export default function HomeScreen({ navigation }) {
                     accessibilityLabel="Add your first asset"
                   >
                     <Feather name="plus" size={16} color="#080B12" style={{ marginRight: 6 }} />
-                    <Text style={styles.emptyAddButtonText}>Add Asset</Text>
+                    <Text style={styles.emptyAddButtonText}>{t('addAsset')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -874,12 +902,16 @@ const styles = StyleSheet.create({
     padding: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
+    minHeight: 74,
+    justifyContent: 'space-between',
   },
   breakdownLabel: {
     fontSize: 11,
     fontWeight: '700',
     color: darkTheme.colors.textMuted,
-    marginBottom: 3,
+    marginBottom: 4,
+    minHeight: 28,
+    lineHeight: 14,
   },
   breakdownValue: {
     fontSize: 14,
@@ -1031,6 +1063,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
+    width: '100%',
+  },
+  sectionTitleCol: {
+    flex: 1,
+    paddingRight: 8,
+    justifyContent: 'center',
   },
   sectionTitle: {
     fontSize: 15,
@@ -1046,9 +1084,10 @@ const styles = StyleSheet.create({
   linkButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
     paddingVertical: 4,
     paddingHorizontal: 6,
+    flexShrink: 0,
   },
   linkButtonText: {
     fontSize: 12,
@@ -1072,25 +1111,35 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   segmentTabActiveGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 9,
-    paddingHorizontal: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 6,
     borderRadius: 11,
-    gap: 4,
+    minHeight: 46,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   segmentTabInactiveContent: {
+    paddingVertical: 7,
+    paddingHorizontal: 6,
+    borderRadius: 11,
+    minHeight: 46,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  segmentTabInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  segmentTabHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 9,
-    paddingHorizontal: 8,
-    borderRadius: 11,
     gap: 4,
+    maxWidth: '100%',
   },
   segmentEmoji: {
-    fontSize: 13,
+    fontSize: 12,
   },
   segmentText: {
     fontSize: 12,
@@ -1099,28 +1148,39 @@ const styles = StyleSheet.create({
   segmentTextActiveDark: {
     color: '#080B12',
     fontWeight: '900',
+    fontSize: 12,
   },
   segmentTextActiveWhite: {
     color: '#FFFFFF',
     fontWeight: '800',
+    fontSize: 12,
   },
   segmentTextInactive: {
     color: darkTheme.colors.textMuted,
+    fontWeight: '700',
+    fontSize: 12,
   },
   segmentSubtext: {
     fontSize: 10,
   },
   segmentSubtextDark: {
     color: '#080B12',
-    fontWeight: '700',
+    fontWeight: '800',
+    fontSize: 11,
+    marginTop: 1,
     opacity: 0.9,
   },
   segmentSubtextSilverActive: {
-    color: '#E2E8F0',
-    fontWeight: '600',
+    color: '#080B12',
+    fontWeight: '800',
+    fontSize: 11,
+    marginTop: 1,
   },
   segmentSubtextLight: {
-    color: darkTheme.colors.textMuted,
+    color: '#94A3B8',
+    fontWeight: '600',
+    fontSize: 11,
+    marginTop: 1,
   },
 
   // Rates Stack

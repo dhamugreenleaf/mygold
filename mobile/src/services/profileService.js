@@ -193,6 +193,78 @@ export const sendTestNotification = async () => {
   }
 };
 
+/**
+ * Fetch dynamic subscription plan pricing
+ * @returns {Promise<{ success: boolean, data: { price: number, currency: string, planName: string } }>}
+ */
+export const getSubscriptionPricing = async () => {
+  try {
+    const res = await api.get('/subscription/pricing');
+    return res.data;
+  } catch (error) {
+    const message = error.response?.data?.message || error.message || 'Failed to fetch subscription pricing';
+    throw new Error(message);
+  }
+};
+
+/**
+ * Initialize monthly recurring Razorpay AutoPay subscription
+ * @returns {Promise<{ success: boolean, data: { subscriptionId: string, keyId: string, amount: number, planName: string, description: string, alreadyActive?: boolean } }>}
+ */
+export const createMonthlySubscription = async () => {
+  try {
+    const res = await api.post('/subscription/create-monthly');
+    return res.data;
+  } catch (error) {
+    const message = error.response?.data?.message || error.message || 'Failed to initialize subscription';
+    throw new Error(message);
+  }
+};
+
+/**
+ * Verify Razorpay subscription payment authorization signature
+ * @param {object} authData { razorpay_subscription_id, razorpay_payment_id, razorpay_signature }
+ * @returns {Promise<{ success: boolean, message: string, data: object }>}
+ */
+export const verifyMonthlySubscription = async (authData) => {
+  try {
+    const res = await api.post('/subscription/verify-monthly', authData);
+    return res.data;
+  } catch (error) {
+    const message = error.response?.data?.message || error.message || 'Subscription verification failed';
+    throw new Error(message);
+  }
+};
+
+/**
+ * Initialize one-time Razorpay order (fallback)
+ * @returns {Promise<{ success: boolean, data: { orderId: string, keyId: string, amount: number } }>}
+ */
+export const createSubscriptionOrder = async () => {
+  try {
+    const res = await api.post('/subscription/create-order');
+    return res.data;
+  } catch (error) {
+    const message = error.response?.data?.message || error.message || 'Failed to create payment order';
+    throw new Error(message);
+  }
+};
+
+/**
+ * Verify one-time Razorpay order payment (fallback)
+ * @param {object} paymentData { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+ * @returns {Promise<{ success: boolean, message: string, data: object }>}
+ */
+export const verifySubscriptionPayment = async (paymentData) => {
+  try {
+    const res = await api.post('/subscription/verify-payment', paymentData);
+    return res.data;
+  } catch (error) {
+    const message = error.response?.data?.message || error.message || 'Payment verification failed';
+    throw new Error(message);
+  }
+};
+
 export default {
   getProfile,
   requestProfileUpdateOtp,
@@ -200,6 +272,11 @@ export default {
   requestChangeMobileOtp,
   verifyChangeMobileOtp,
   getSubscriptionStatus,
+  getSubscriptionPricing,
+  createMonthlySubscription,
+  verifyMonthlySubscription,
+  createSubscriptionOrder,
+  verifySubscriptionPayment,
   pauseSubscription,
   resumeSubscription,
   cancelSubscription,
