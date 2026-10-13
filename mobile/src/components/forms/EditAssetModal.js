@@ -21,6 +21,7 @@ import { updatePurchase } from '../../services/portfolioService';
 import { darkTheme } from '../../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { gradientPresets } from '../../constants/colors';
+import { useToast } from '../../context/ToastContext';
 
 const GOLD_SUGGESTIONS = [
   'Gold Chain',
@@ -46,6 +47,7 @@ export default function EditAssetModal({
   purchase,
   onUpdated,
 }) {
+  const { showSuccess, showError } = useToast();
   const [assetType, setAssetType] = useState('GOLD');
   const [formData, setFormData] = useState({
     itemName: '',
@@ -376,15 +378,15 @@ export default function EditAssetModal({
 
       await updatePurchase(purchase.id, dataPayload);
 
-      Alert.alert('Asset Updated', 'Changes have been saved successfully.');
+      showSuccess('Changes have been saved successfully.', 'Asset Updated');
       if (onUpdated) {
         await onUpdated();
       }
       onClose();
     } catch (err) {
-      console.error('[EditAssetModal] Update failed:', err?.message || err);
+      console.warn('[EditAssetModal] Update failed:', err?.message || err);
       const msg = err.response?.data?.message || err.message || 'Failed to update asset.';
-      Alert.alert('Update Failed', msg);
+      showError(msg, 'Update Failed');
     } finally {
       setSubmitting(false);
     }

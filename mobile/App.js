@@ -5,21 +5,24 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from './src/context/AuthContext';
 import { GoldRateProvider } from './src/context/GoldRateContext';
 import { LanguageProvider } from './src/context/LanguageContext';
+import { ToastProvider } from './src/context/ToastContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <LanguageProvider>
-          <GoldRateProvider>
-            <NavigationContainer>
-              <StatusBar style="light" />
-              <AppNavigator />
-            </NavigationContainer>
-          </GoldRateProvider>
-        </LanguageProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <LanguageProvider>
+            <GoldRateProvider>
+              <NavigationContainer>
+                <StatusBar style="light" />
+                <AppNavigator />
+              </NavigationContainer>
+            </GoldRateProvider>
+          </LanguageProvider>
+        </AuthProvider>
+      </ToastProvider>
     </SafeAreaProvider>
   );
 }

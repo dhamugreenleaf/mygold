@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -12,6 +12,7 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { gradientPresets } from '../../constants/colors';
 import { darkTheme } from '../../constants/theme';
+import { useLanguage } from '../../context/LanguageContext';
 
 const TERMS_DATA = {
   en: {
@@ -90,7 +91,15 @@ const LANGUAGES = [
 ];
 
 export default function TermsModal({ isOpen, onClose }) {
-  const [selectedLang, setSelectedLang] = useState('en');
+  const { language } = useLanguage();
+  const [selectedLang, setSelectedLang] = useState(language || 'en');
+
+  // Sync initial and switching language with active app language
+  useEffect(() => {
+    if (isOpen && language && TERMS_DATA[language]) {
+      setSelectedLang(language);
+    }
+  }, [isOpen, language]);
 
   if (!isOpen) return null;
 
@@ -194,18 +203,12 @@ export default function TermsModal({ isOpen, onClose }) {
 
             <TouchableOpacity
               onPress={onClose}
-              activeOpacity={0.88}
+              activeOpacity={0.85}
+              style={styles.actionButton}
               accessibilityRole="button"
               accessibilityLabel={currentContent.closeBtn}
             >
-              <LinearGradient
-                colors={gradientPresets.goldMetallic}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.actionButton}
-              >
-                <Text style={styles.actionButtonText}>{currentContent.closeBtn}</Text>
-              </LinearGradient>
+              <Text style={styles.actionButtonText}>{currentContent.closeBtn}</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -371,14 +374,16 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     height: 48,
-    borderRadius: 14,
+    borderRadius: 16,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
-    ...darkTheme.shadows.button,
   },
   actionButtonText: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#080B12',
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

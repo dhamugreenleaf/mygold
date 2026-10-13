@@ -21,21 +21,21 @@ const DISCLAIMER_DATA = {
     title: 'Disclaimer',
     text: 'MyGold is for gold and silver asset tracking and approximate price reference only. It does not buy, sell, or facilitate the buying or selling of gold, silver, money, or other financial assets. Prices shown are approximate and may differ from actual market prices.',
     agreeText: 'I understand and agree to the above disclaimer.',
-    continueBtn: 'I Understand & Continue',
+    continueBtn: 'Continue',
   },
   ta: {
     label: 'தமிழ்',
     title: 'பொறுப்புத் துறப்பு',
     text: 'MyGold தங்கம் மற்றும் வெள்ளி சொத்துகளை கண்காணிக்கவும், தோராயமான விலையை அறியவும் மட்டுமே பயன்படும். இது தங்கம், வெள்ளி, பணம் அல்லது பிற நிதி சொத்துகளை வாங்கவோ விற்கவோ சேவை வழங்காது. காட்டப்படும் விலைகள் தோராயமானவை; உண்மையான சந்தை விலை மாறுபடலாம்.',
     agreeText: 'மேற்கண்ட பொறுப்புத் துறப்பை நான் படித்து ஏற்றுக்கொள்கிறேன்.',
-    continueBtn: 'ஏற்றுக்கொண்டு தொடரவும்',
+    continueBtn: 'தொடரவும்',
   },
   hi: {
     label: 'हिन्दी',
     title: 'अस्वीकरण',
     text: 'MyGold केवल सोने और चांदी की संपत्तियों को ट्रैक करने और अनुमानित कीमत जानने के लिए है। यह सोना, चांदी, पैसा या अन्य वित्तीय संपत्तियों को खरीदने या बेचने की सुविधा या सेवा प्रदान नहीं करता है। दिखाई गई कीमतें अनुमानित हैं और वास्तविक बाजार कीमत से अलग हो सकती हैं।',
     agreeText: 'मैं उपरोक्त अस्वीकरण को समझता/समझती हूँ और सहमत हूँ।',
-    continueBtn: 'स्वीकार करें और जारी रखें',
+    continueBtn: 'जारी रखें',
   },
   ml: {
     label: 'മലയാളം',
@@ -234,7 +234,6 @@ export default function DisclaimerModal() {
                 style={styles.continueButtonGradient}
               >
                 <Text style={styles.continueButtonText}>{currentContent.continueBtn}</Text>
-                <Feather name="arrow-right" size={16} color="#080B12" style={{ marginLeft: 6 }} />
               </LinearGradient>
             </TouchableOpacity>
           ) : (

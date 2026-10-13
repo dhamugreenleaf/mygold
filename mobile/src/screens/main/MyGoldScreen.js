@@ -28,11 +28,13 @@ import AssetCard from '../../components/cards/AssetCard';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import DocumentViewerModal from '../../components/common/DocumentViewerModal';
 import EditAssetModal from '../../components/forms/EditAssetModal';
+import { useToast } from '../../context/ToastContext';
 
 const ITEMS_PER_PAGE = 5;
 
 export default function MyGoldScreen({ navigation }) {
   const { getLiveRate, refreshGoldRates } = useGoldRate();
+  const { showSuccess, showError } = useToast();
 
   // Screen State
   const [data, setData] = useState(null);
@@ -78,7 +80,7 @@ export default function MyGoldScreen({ navigation }) {
         setData({ purchases: [] });
       }
     } catch (err) {
-      console.error('[MyGoldScreen] Failed to fetch purchases:', err?.message || err);
+      console.warn('[MyGoldScreen] Failed to fetch purchases:', err?.message || err);
       setError('Unable to load your physical assets. Please check your connection.');
     } finally {
       setLoading(false);
@@ -219,10 +221,10 @@ export default function MyGoldScreen({ navigation }) {
       setDeleteModalOpen(false);
       setItemToDelete(null);
       await loadPurchases();
-      Alert.alert('Asset Removed', 'The asset has been successfully removed from your vault.');
+      showSuccess('The asset has been successfully removed from your vault.', 'Asset Removed');
     } catch (err) {
-      console.error('[MyGoldScreen] Failed to delete purchase:', err?.message || err);
-      Alert.alert('Error', 'Unable to remove the asset. Please try again.');
+      console.warn('[MyGoldScreen] Failed to delete purchase:', err?.message || err);
+      showError('Unable to remove the asset. Please try again.', 'Error');
     } finally {
       setIsDeleting(false);
     }
