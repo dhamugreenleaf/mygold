@@ -33,10 +33,6 @@ export default function LoginScreen({ navigation }) {
       setErrorMessage(isTamil ? 'பயனர் பெயர் மற்றும் கடவுச்சொல் தேவை.' : 'Username and password are required.');
       return false;
     }
-    if (!/^[a-zA-Z\s]+$/.test(cleanUsername)) {
-      setErrorMessage(isTamil ? 'பயனர் பெயர் எழுத்துக்களாக மட்டுமே இருக்க வேண்டும்.' : 'Username can only contain alphabets and spaces.');
-      return false;
-    }
     if (!password) {
       setErrorMessage(isTamil ? 'கடவுச்சொல்லை உள்ளிடவும்.' : 'Please enter your password.');
       return false;
@@ -107,17 +103,17 @@ export default function LoginScreen({ navigation }) {
 
             {/* Username Input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{t('username')}</Text>
+              <Text style={styles.inputLabel}>{isTamil ? 'பயனர் பெயர் / மொபைல்' : 'Username / Mobile'}</Text>
               <View style={styles.inputContainer}>
                 <Feather name="user" size={18} color="#94A3B8" style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   value={username}
                   onChangeText={(text) => {
-                    setUsername(text.replace(/[^a-zA-Z\s]/g, ''));
+                    setUsername(text);
                     if (errorMessage) setErrorMessage('');
                   }}
-                  placeholder={isTamil ? 'பயனர் பெயரை உள்ளிடவும்' : 'Enter your username'}
+                  placeholder={isTamil ? 'பயனர் பெயர் அல்லது மொபைல்' : 'Username or registered mobile'}
                   placeholderTextColor="#64748B"
                   autoCapitalize="none"
                   autoCorrect={false}

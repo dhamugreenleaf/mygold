@@ -84,12 +84,8 @@ export default function ForgotPasswordScreen({ navigation }) {
       setErrorMessage('Please enter your username.');
       return;
     }
-    if (!/^[a-zA-Z\s]+$/.test(cleanUsername)) {
-      setErrorMessage('Username can only contain alphabets and spaces.');
-      return;
-    }
 
-    const cleanMobile = mobile.replace(/\D/g, '').replace(/^0+/, '');
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
     if (!cleanMobile || cleanMobile.length !== 10) {
       setErrorMessage('Please enter a valid 10-digit mobile number.');
       return;
@@ -117,12 +113,12 @@ export default function ForgotPasswordScreen({ navigation }) {
   const handleVerifyOtp = async () => {
     setErrorMessage('');
     const cleanOtp = String(otp || '').trim();
-    if (!cleanOtp || cleanOtp.length !== 6) {
-      setErrorMessage('Please enter the 6-digit OTP code.');
+    if (!cleanOtp || cleanOtp.length < 4) {
+      setErrorMessage('Please enter the OTP code.');
       return;
     }
 
-    const cleanMobile = mobile.replace(/\D/g, '').replace(/^0+/, '');
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
 
     try {
       setLoading(true);
@@ -316,7 +312,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                       style={styles.textInput}
                       value={username}
                       onChangeText={(text) => {
-                        setUsername(text.replace(/[^a-zA-Z\s]/g, ''));
+                        setUsername(text);
                         if (errorMessage) setErrorMessage('');
                       }}
                       placeholder="Enter registered username"
