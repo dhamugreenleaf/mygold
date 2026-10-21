@@ -251,15 +251,18 @@ export default function MoreScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <LinearGradient
-        colors={gradientPresets.ambientGlow}
-        style={styles.ambientGlow}
-        pointerEvents="none"
-      />
+      <View pointerEvents="none" style={styles.ambientGlow}>
+        <LinearGradient
+          colors={gradientPresets.ambientGlow}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={true}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -804,6 +807,8 @@ export default function MoreScreen() {
               style={styles.notifListScroll}
               contentContainerStyle={styles.notifListContent}
               showsVerticalScrollIndicator
+              bounces={true}
+              alwaysBounceVertical={true}
             >
               {loadingNotifs ? (
                 <View style={styles.notifEmptyState}>
@@ -919,9 +924,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 40,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 70,
     gap: 16,
   },
 
@@ -1631,6 +1637,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notifListContent: {
+    flexGrow: 1,
     padding: 20,
     gap: 12,
   },

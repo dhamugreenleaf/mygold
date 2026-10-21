@@ -9,12 +9,17 @@ export const AUTH_TOKEN_KEY = 'aurum_token';
 export const AUTH_USER_KEY = 'aurum_user';
 
 export const getApiBaseUrl = () => {
-  // 1. Web browser: Use current host
+  // 1. Explicitly configured backend link from .env
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 2. Web browser: Use current host
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.hostname) {
     return `http://${window.location.hostname}:5010/api`;
   }
 
-  // 2. Dynamic host detection from Metro bundle scriptURL in development
+  // 3. Dynamic host detection from Metro bundle scriptURL in local development
   try {
     const scriptURL = NativeModules?.SourceCode?.scriptURL;
     if (scriptURL) {
@@ -27,17 +32,13 @@ export const getApiBaseUrl = () => {
     // Fall back to platform defaults
   }
 
-  // 3. Use Expo public environment variable if defined
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
+  // 4. Fallback for Android emulator / physical device on local Wi-Fi
+  if (Platform.OS === 'android' && typeof __DEV__ !== 'undefined' && __DEV__) {
+    return 'http://192.168.1.39:5010/api';
   }
 
-  // 4. Android fallback: Wi-Fi host machine IP
-  if (Platform.OS === 'android') {
-    return 'http://10.60.41.164:5010/api';
-  }
-
-  return 'http://localhost:5010/api';
+  // 5. Default fallback to live production server (matches web frontend)
+  return 'https://mygold.greenleafagencies.com/api';
 };
 
 const api = axios.create({

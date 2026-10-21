@@ -285,11 +285,12 @@ export default function MyGoldScreen({ navigation }) {
   if (error && !data && !loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <LinearGradient
-          colors={gradientPresets.ambientGlow}
-          style={styles.ambientGlow}
-          pointerEvents="none"
-        />
+        <View pointerEvents="none" style={styles.ambientGlow}>
+          <LinearGradient
+            colors={gradientPresets.ambientGlow}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
         <View style={styles.errorContainer}>
           <View style={styles.errorIconCircle}>
             <Feather name="alert-circle" size={32} color={darkTheme.colors.loss} />
@@ -319,15 +320,18 @@ export default function MyGoldScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <LinearGradient
-        colors={gradientPresets.ambientGlow}
-        style={styles.ambientGlow}
-        pointerEvents="none"
-      />
+      <View pointerEvents="none" style={styles.ambientGlow}>
+        <LinearGradient
+          colors={gradientPresets.ambientGlow}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={true}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -651,9 +655,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 36,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 70,
   },
 
   // 1. Header

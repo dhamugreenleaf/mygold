@@ -197,8 +197,11 @@ export default function DisclaimerModal() {
           <View style={styles.disclaimerTextBox}>
             <ScrollView
               style={styles.textScrollView}
+              contentContainerStyle={styles.textScrollContent}
               showsVerticalScrollIndicator
               nestedScrollEnabled
+              bounces={true}
+              alwaysBounceVertical={true}
             >
               <Text style={styles.disclaimerBody}>{currentContent.text}</Text>
             </ScrollView>
@@ -364,6 +367,9 @@ const styles = StyleSheet.create({
   },
   textScrollView: {
     flexGrow: 0,
+  },
+  textScrollContent: {
+    flexGrow: 1,
   },
   disclaimerBody: {
     fontSize: 13,

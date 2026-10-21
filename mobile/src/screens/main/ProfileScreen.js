@@ -310,7 +310,12 @@ export default function ProfileScreen({ navigation }) {
 
   const handleRequestMobileOtp = async () => {
     setMobileError(null);
-    const cleaned = newMobile.replace(/\D/g, '');
+    let cleaned = newMobile.replace(/\D/g, '').replace(/^0+/, '');
+    if (cleaned.length === 12 && cleaned.startsWith('91')) {
+      cleaned = cleaned.slice(2);
+    } else if (cleaned.length > 10) {
+      cleaned = cleaned.slice(-10);
+    }
 
     if (cleaned.length !== 10) {
       setMobileError('Please enter a valid 10-digit mobile number.');
@@ -512,15 +517,18 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <LinearGradient
-        colors={gradientPresets.ambientGlow}
-        style={styles.ambientGlow}
-        pointerEvents="none"
-      />
+      <View pointerEvents="none" style={styles.ambientGlow}>
+        <LinearGradient
+          colors={gradientPresets.ambientGlow}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={true}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -1648,9 +1656,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 40,
+    paddingBottom: Platform.OS === 'ios' ? 110 : 70,
     gap: 16,
   },
 

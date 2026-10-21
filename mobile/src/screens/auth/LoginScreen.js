@@ -59,25 +59,30 @@ export default function LoginScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Top Ambient Gold Glow Matching Website radial-gradient */}
-      <LinearGradient
-        colors={['rgba(245, 158, 11, 0.14)', 'rgba(217, 119, 6, 0.03)', 'transparent']}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 0.55 }}
-        style={StyleSheet.absoluteFillObject}
-        pointerEvents="none"
-      />
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={['rgba(245, 158, 11, 0.14)', 'rgba(217, 119, 6, 0.03)', 'transparent']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.55 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </View>
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          bounces={true}
+          alwaysBounceVertical={true}
         >
-          {/* Brand Header Matching Website */}
-          <View style={styles.headerContainer}>
+          <View style={styles.innerContainer}>
+            {/* Brand Header Matching Website */}
+            <View style={styles.headerContainer}>
             {/* Amber/Gold Gradient Badge */}
             <LinearGradient
               colors={['#FBBF24', '#D97706', '#B45309']}
@@ -212,17 +217,18 @@ export default function LoginScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Register Footer */}
-          <View style={styles.registerFooter}>
-            <Text style={styles.footerText}>{t('noAccountPrompt')} </Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Register')}
-              disabled={submitting}
-              accessibilityRole="link"
-              accessibilityLabel="Register Now"
-            >
-              <Text style={styles.registerLinkText}>{t('registerNow')}</Text>
-            </TouchableOpacity>
+            {/* Register Footer */}
+            <View style={styles.registerFooter}>
+              <Text style={styles.footerText}>{t('noAccountPrompt')} </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Register')}
+                disabled={submitting}
+                accessibilityRole="link"
+                accessibilityLabel="Register Now"
+              >
+                <Text style={styles.registerLinkText}>{t('registerNow')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -238,11 +244,17 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingVertical: 20,
+  },
+  innerContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   headerContainer: {
     alignItems: 'center',
