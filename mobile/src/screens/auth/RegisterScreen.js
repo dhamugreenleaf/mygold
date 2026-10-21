@@ -80,7 +80,12 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
 
-    const cleanMobile = mobile.replace(/\D/g, '').replace(/^0+/, '');
+    let cleanMobile = mobile.replace(/\D/g, '').replace(/^0+/, '');
+    if (cleanMobile.length === 12 && cleanMobile.startsWith('91')) {
+      cleanMobile = cleanMobile.slice(2);
+    } else if (cleanMobile.length > 10) {
+      cleanMobile = cleanMobile.slice(-10);
+    }
     if (!cleanMobile || cleanMobile.length !== 10) {
       setErrorMessage(isTamil ? 'சரியான 10 இலக்க மொபைல் எண்ணை உள்ளிடவும்.' : 'Please enter a valid 10-digit mobile number.');
       return;
@@ -117,7 +122,12 @@ export default function RegisterScreen({ navigation }) {
 
     try {
       setLoading(true);
-      const cleanMobile = mobile.replace(/\D/g, '').replace(/^0+/, '');
+      let cleanMobile = mobile.replace(/\D/g, '').replace(/^0+/, '');
+      if (cleanMobile.length === 12 && cleanMobile.startsWith('91')) {
+        cleanMobile = cleanMobile.slice(2);
+      } else if (cleanMobile.length > 10) {
+        cleanMobile = cleanMobile.slice(-10);
+      }
       const cleanUsername = username.trim();
       const cleanEmail = email.trim().toLowerCase();
 
@@ -146,7 +156,12 @@ export default function RegisterScreen({ navigation }) {
 
     try {
       setLoading(true);
-      const cleanMobile = mobile.replace(/\D/g, '').replace(/^0+/, '');
+      let cleanMobile = mobile.replace(/\D/g, '').replace(/^0+/, '');
+      if (cleanMobile.length === 12 && cleanMobile.startsWith('91')) {
+        cleanMobile = cleanMobile.slice(2);
+      } else if (cleanMobile.length > 10) {
+        cleanMobile = cleanMobile.slice(-10);
+      }
       const cleanUsername = username.trim();
       const res = await requestRegisterOtp(cleanUsername, cleanMobile);
       setSuccessMessage(
@@ -163,25 +178,30 @@ export default function RegisterScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Top Ambient Gold Glow Matching Website radial-gradient */}
-      <LinearGradient
-        colors={['rgba(245, 158, 11, 0.14)', 'rgba(217, 119, 6, 0.03)', 'transparent']}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 0.55 }}
-        style={StyleSheet.absoluteFillObject}
-        pointerEvents="none"
-      />
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={['rgba(245, 158, 11, 0.14)', 'rgba(217, 119, 6, 0.03)', 'transparent']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.55 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </View>
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          bounces={true}
+          alwaysBounceVertical={true}
         >
-          {/* Header Matching Website */}
-          <View style={styles.headerContainer}>
+          <View style={styles.innerContainer}>
+            {/* Header Matching Website */}
+            <View style={styles.headerContainer}>
             {/* Amber/Gold Gradient Badge (rotate-3) */}
             <LinearGradient
               colors={['#FBBF24', '#D97706', '#B45309']}
@@ -279,7 +299,13 @@ export default function RegisterScreen({ navigation }) {
                       style={styles.mobileTextInput}
                       value={mobile}
                       onChangeText={(text) => {
-                        setMobile(text.replace(/\D/g, '').slice(0, 10));
+                        let digits = text.replace(/\D/g, '');
+                        if (digits.length === 12 && digits.startsWith('91')) {
+                          digits = digits.slice(2);
+                        } else if (digits.length > 10) {
+                          digits = digits.slice(-10);
+                        }
+                        setMobile(digits);
                         if (errorMessage) setErrorMessage('');
                       }}
                       placeholder="9876543210"
@@ -384,6 +410,8 @@ export default function RegisterScreen({ navigation }) {
                     placeholder="• • • • • •"
                     placeholderTextColor="#64748B"
                     keyboardType="number-pad"
+                    textContentType="oneTimeCode"
+                    autoComplete={Platform.OS === 'ios' ? 'one-time-code' : 'sms-otp'}
                     maxLength={6}
                     autoFocus
                     editable={!loading}
@@ -453,17 +481,18 @@ export default function RegisterScreen({ navigation }) {
             )}
           </View>
 
-          {/* Login Footer Matching Website */}
-          <View style={styles.loginFooter}>
-            <Text style={styles.footerText}>{t('haveAccountPrompt')} </Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Login')}
-              disabled={loading}
-              accessibilityRole="link"
-              accessibilityLabel="Login Now"
-            >
-              <Text style={styles.loginLinkText}>{t('loginNow')}</Text>
-            </TouchableOpacity>
+            {/* Login Footer Matching Website */}
+            <View style={styles.loginFooter}>
+              <Text style={styles.footerText}>{t('haveAccountPrompt')} </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Login')}
+                disabled={loading}
+                accessibilityRole="link"
+                accessibilityLabel="Login Now"
+              >
+                <Text style={styles.loginLinkText}>{t('loginNow')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -479,11 +508,17 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingVertical: 20,
+  },
+  innerContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   headerContainer: {
     alignItems: 'center',

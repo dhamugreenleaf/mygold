@@ -53,11 +53,14 @@ export default function Toast({
   const translateY = useRef(new Animated.Value(-120)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
+  const [shouldRender, setShouldRender] = React.useState(visible);
+
   const config = TYPE_CONFIG[type] || TYPE_CONFIG.info;
   const topInset = Math.max(insets?.top || 0, Platform.OS === 'web' ? 16 : 12);
 
   useEffect(() => {
     if (visible) {
+      setShouldRender(true);
       Animated.parallel([
         Animated.spring(translateY, {
           toValue: 0,
@@ -83,11 +86,13 @@ export default function Toast({
           duration: 180,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        setShouldRender(false);
+      });
     }
   }, [visible, translateY, opacity]);
 
-  if (!visible && opacity._value === 0) {
+  if (!shouldRender) {
     return null;
   }
 

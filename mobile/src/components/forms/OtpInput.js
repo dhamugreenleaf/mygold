@@ -82,6 +82,8 @@ export default function OtpInput({
               onChangeText={(text) => handleChangeText(text, i)}
               onKeyPress={(e) => handleKeyPress(e, i)}
               keyboardType="number-pad"
+              textContentType="oneTimeCode"
+              autoComplete={Platform.OS === 'ios' ? 'one-time-code' : 'sms-otp'}
               maxLength={i === 0 ? length : 1}
               selectTextOnFocus
               editable={!disabled}

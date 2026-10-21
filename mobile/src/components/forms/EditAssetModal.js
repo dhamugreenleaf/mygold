@@ -407,11 +407,12 @@ export default function EditAssetModal({
     >
       <View style={styles.modalBackdrop}>
         <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
-          <LinearGradient
-            colors={gradientPresets.ambientGlow}
-            style={styles.ambientGlow}
-            pointerEvents="none"
-          />
+          <View pointerEvents="none" style={styles.ambientGlow}>
+            <LinearGradient
+              colors={gradientPresets.ambientGlow}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
           <KeyboardAvoidingView
             style={styles.keyboardView}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -440,6 +441,8 @@ export default function EditAssetModal({
               contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
+              bounces={true}
+              alwaysBounceVertical={true}
             >
               {/* Metal Switcher */}
               <View style={styles.metalSwitcherRow}>
@@ -925,6 +928,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 40,

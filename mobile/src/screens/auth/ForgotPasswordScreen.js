@@ -84,12 +84,13 @@ export default function ForgotPasswordScreen({ navigation }) {
       setErrorMessage('Please enter your username.');
       return;
     }
-    if (!/^[a-zA-Z\s]+$/.test(cleanUsername)) {
-      setErrorMessage('Username can only contain alphabets and spaces.');
-      return;
-    }
 
-    const cleanMobile = mobile.replace(/\D/g, '').replace(/^0+/, '');
+    let cleanMobile = mobile.replace(/\D/g, '').replace(/^0+/, '');
+    if (cleanMobile.length === 12 && cleanMobile.startsWith('91')) {
+      cleanMobile = cleanMobile.slice(2);
+    } else if (cleanMobile.length > 10) {
+      cleanMobile = cleanMobile.slice(-10);
+    }
     if (!cleanMobile || cleanMobile.length !== 10) {
       setErrorMessage('Please enter a valid 10-digit mobile number.');
       return;
@@ -117,12 +118,12 @@ export default function ForgotPasswordScreen({ navigation }) {
   const handleVerifyOtp = async () => {
     setErrorMessage('');
     const cleanOtp = String(otp || '').trim();
-    if (!cleanOtp || cleanOtp.length !== 6) {
-      setErrorMessage('Please enter the 6-digit OTP code.');
+    if (!cleanOtp || cleanOtp.length < 4) {
+      setErrorMessage('Please enter the OTP code.');
       return;
     }
 
-    const cleanMobile = mobile.replace(/\D/g, '').replace(/^0+/, '');
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
 
     try {
       setLoading(true);
@@ -204,22 +205,27 @@ export default function ForgotPasswordScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient
-        colors={gradientPresets.ambientGlow}
-        style={styles.ambientGlow}
-        pointerEvents="none"
-      />
+      <View pointerEvents="none" style={styles.ambientGlow}>
+        <LinearGradient
+          colors={gradientPresets.ambientGlow}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          bounces={true}
+          alwaysBounceVertical={true}
         >
-          {/* Top Bar with Back Button */}
-          <View style={styles.topBar}>
+          <View style={styles.innerContainer}>
+            {/* Top Bar with Back Button */}
+            <View style={styles.topBar}>
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => {
@@ -316,7 +322,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                       style={styles.textInput}
                       value={username}
                       onChangeText={(text) => {
-                        setUsername(text.replace(/[^a-zA-Z\s]/g, ''));
+                        setUsername(text);
                         if (errorMessage) setErrorMessage('');
                       }}
                       placeholder="Enter registered username"
@@ -603,6 +609,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               </View>
             )}
           </View>
+        </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -624,11 +631,17 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: darkTheme.layout.screenPaddingHorizontal,
     paddingVertical: 16,
+  },
+  innerContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   topBar: {
     flexDirection: 'row',

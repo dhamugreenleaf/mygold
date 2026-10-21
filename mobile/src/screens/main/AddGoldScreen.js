@@ -357,11 +357,12 @@ export default function AddGoldScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <LinearGradient
-        colors={gradientPresets.ambientGlow}
-        style={styles.ambientGlow}
-        pointerEvents="none"
-      />
+      <View pointerEvents="none" style={styles.ambientGlow}>
+        <LinearGradient
+          colors={gradientPresets.ambientGlow}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -371,6 +372,8 @@ export default function AddGoldScreen({ navigation }) {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          bounces={true}
+          alwaysBounceVertical={true}
         >
           {/* Header Row & Entitlement Badge */}
           <View style={styles.headerRow}>
@@ -922,9 +925,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 40,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 70,
   },
 
   // Header Row

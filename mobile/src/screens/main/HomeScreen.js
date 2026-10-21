@@ -230,17 +230,20 @@ export default function HomeScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Top Ambient Gold Glow Matching Website */}
-      <LinearGradient
-        colors={['rgba(245, 158, 11, 0.14)', 'rgba(217, 119, 6, 0.03)', 'transparent']}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 0.5 }}
-        style={StyleSheet.absoluteFillObject}
-        pointerEvents="none"
-      />
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={['rgba(245, 158, 11, 0.14)', 'rgba(217, 119, 6, 0.03)', 'transparent']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.5 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </View>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={true}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -741,9 +744,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 32,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 70,
   },
 
   // 1. Header

@@ -33,10 +33,6 @@ export default function LoginScreen({ navigation }) {
       setErrorMessage(isTamil ? 'பயனர் பெயர் மற்றும் கடவுச்சொல் தேவை.' : 'Username and password are required.');
       return false;
     }
-    if (!/^[a-zA-Z\s]+$/.test(cleanUsername)) {
-      setErrorMessage(isTamil ? 'பயனர் பெயர் எழுத்துக்களாக மட்டுமே இருக்க வேண்டும்.' : 'Username can only contain alphabets and spaces.');
-      return false;
-    }
     if (!password) {
       setErrorMessage(isTamil ? 'கடவுச்சொல்லை உள்ளிடவும்.' : 'Please enter your password.');
       return false;
@@ -63,25 +59,30 @@ export default function LoginScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Top Ambient Gold Glow Matching Website radial-gradient */}
-      <LinearGradient
-        colors={['rgba(245, 158, 11, 0.14)', 'rgba(217, 119, 6, 0.03)', 'transparent']}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 0.55 }}
-        style={StyleSheet.absoluteFillObject}
-        pointerEvents="none"
-      />
+      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={['rgba(245, 158, 11, 0.14)', 'rgba(217, 119, 6, 0.03)', 'transparent']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.55 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </View>
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          bounces={true}
+          alwaysBounceVertical={true}
         >
-          {/* Brand Header Matching Website */}
-          <View style={styles.headerContainer}>
+          <View style={styles.innerContainer}>
+            {/* Brand Header Matching Website */}
+            <View style={styles.headerContainer}>
             {/* Amber/Gold Gradient Badge */}
             <LinearGradient
               colors={['#FBBF24', '#D97706', '#B45309']}
@@ -107,17 +108,17 @@ export default function LoginScreen({ navigation }) {
 
             {/* Username Input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{t('username')}</Text>
+              <Text style={styles.inputLabel}>{isTamil ? 'பயனர் பெயர் / மொபைல்' : 'Username / Mobile'}</Text>
               <View style={styles.inputContainer}>
                 <Feather name="user" size={18} color="#94A3B8" style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   value={username}
                   onChangeText={(text) => {
-                    setUsername(text.replace(/[^a-zA-Z\s]/g, ''));
+                    setUsername(text);
                     if (errorMessage) setErrorMessage('');
                   }}
-                  placeholder={isTamil ? 'பயனர் பெயரை உள்ளிடவும்' : 'Enter your username'}
+                  placeholder={isTamil ? 'பயனர் பெயர் அல்லது மொபைல்' : 'Username or registered mobile'}
                   placeholderTextColor="#64748B"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -216,17 +217,18 @@ export default function LoginScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Register Footer */}
-          <View style={styles.registerFooter}>
-            <Text style={styles.footerText}>{t('noAccountPrompt')} </Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Register')}
-              disabled={submitting}
-              accessibilityRole="link"
-              accessibilityLabel="Register Now"
-            >
-              <Text style={styles.registerLinkText}>{t('registerNow')}</Text>
-            </TouchableOpacity>
+            {/* Register Footer */}
+            <View style={styles.registerFooter}>
+              <Text style={styles.footerText}>{t('noAccountPrompt')} </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Register')}
+                disabled={submitting}
+                accessibilityRole="link"
+                accessibilityLabel="Register Now"
+              >
+                <Text style={styles.registerLinkText}>{t('registerNow')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -242,11 +244,17 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingVertical: 20,
+  },
+  innerContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   headerContainer: {
     alignItems: 'center',

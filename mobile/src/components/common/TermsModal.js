@@ -178,6 +178,8 @@ export default function TermsModal({ isOpen, onClose }) {
             style={styles.bodyScroll}
             contentContainerStyle={styles.bodyContent}
             showsVerticalScrollIndicator
+            bounces={true}
+            alwaysBounceVertical={true}
           >
             <View style={styles.disclaimerBox}>
               <Text style={styles.sectionTitle}>{currentContent.sectionTitle}</Text>
@@ -318,6 +320,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bodyContent: {
+    flexGrow: 1,
     padding: 20,
   },
   disclaimerBox: {
