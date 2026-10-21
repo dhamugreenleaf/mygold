@@ -1,0 +1,265 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-heading: 'Cinzel', 'Playfair Display', serif;
+  --font-cinzel: 'Cinzel', serif;
+  --font-playfair: 'Playfair Display', serif;
+}
+
+@layer base {
+  :root {
+    --font-heading: 'Cinzel', 'Playfair Display', serif;
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    
+    /* Default Dark Obsidian Vault Theme -> Premium Deep Navy & Gold */
+    --bg-main: #080B12;
+    --bg-card: #161B26;
+    --bg-card-glass: rgba(22, 27, 38, 0.85);
+    --bg-subtle: #11141A;
+    --border-color: rgba(255, 191, 0, 0.2);
+    --border-glow: rgba(255, 191, 0, 0.6);
+    --text-primary: #FFFFFF;
+    --text-muted: #A3A3A3;
+    --text-gold: #E8B331;
+    
+    --gold-1: #FCE192;
+    --gold-2: #E8B331;
+    --gold-3: #C2821A;
+    --gold-4: #8C550A;
+    
+    --profit-green: #10B981;
+    --profit-bg: rgba(16, 185, 129, 0.12);
+    --profit-border: rgba(16, 185, 129, 0.25);
+    
+    --loss-red: #F43F5E;
+    --loss-bg: rgba(244, 63, 94, 0.12);
+    --loss-border: rgba(244, 63, 94, 0.25);
+
+    /* Live Gold Rate Ticker Theme (Dark) */
+    --ticker-bg: #151515;
+    --ticker-border: #3A321C;
+    --ticker-gold: #D4AF37;
+    --ticker-text-primary: #F5F5F4;
+    --ticker-text-secondary: #A8A29E;
+    --ticker-live-dot: #4ADE80;
+  }
+
+  html.light,
+  .light {
+    /* Premium Ivory & Navy Light Theme */
+    --bg-main: #F8F6F1;
+    --bg-card: #FFFFFF;
+    --bg-card-glass: rgba(255, 255, 255, 0.95);
+    --bg-subtle: #F3F1EC;
+    --border-color: #E5E0D6;
+    --border-glow: rgba(217, 154, 0, 0.45);
+    --border-silver: #D7DCE3;
+    
+    --text-primary: #172033;
+    --text-secondary: #5F6878;
+    --text-muted: #7B8494;
+    --text-gold: #D97706;
+    
+    --gold-1: #FDE68A;
+    --gold-2: #F59E0B;
+    --gold-3: #D97706;
+    --gold-4: #B45309;
+    
+    --profit-green: #059669;
+    --profit-bg: rgba(5, 150, 105, 0.1);
+    --profit-border: rgba(5, 150, 105, 0.25);
+    
+    --loss-red: #E11D48;
+    --loss-bg: rgba(225, 29, 72, 0.1);
+    --loss-border: rgba(225, 29, 72, 0.25);
+
+    /* Live Gold Rate Ticker Theme (Light) */
+    --ticker-bg: #FFFFFF;
+    --ticker-border: #E5E0D6;
+    --ticker-gold: #9A6500;
+    --ticker-text-primary: #172033;
+    --ticker-text-secondary: #7B8494;
+    --ticker-live-dot: #16A34A;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.25s ease, color 0.25s ease;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, .font-heading {
+    font-family: var(--font-heading);
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Custom Luxury Gradients & Shimmers */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #FFEBB7 0%, #F5C042 45%, #D97706 80%, #B45309 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+html.light .text-gold-gradient {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #B45309 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-gold-metallic {
+  background: linear-gradient(135deg, #FDE68A 0%, #F59E0B 50%, #B45309 100%);
+}
+
+.bg-gold-metallic-hover {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FBBF24 50%, #D97706 100%);
+}
+
+.bg-gold-subtle {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(217, 119, 6, 0.05) 100%);
+}
+
+html.light .bg-gold-subtle {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.04) 100%);
+}
+
+.gold-glow-sm {
+  box-shadow: 0 4px 14px 0 rgba(232, 179, 49, 0.15);
+}
+
+.gold-glow-md {
+  box-shadow: 0 6px 20px rgba(232, 179, 49, 0.25);
+}
+
+.gold-glow-lg {
+  box-shadow: 0 10px 30px rgba(232, 179, 49, 0.35);
+}
+
+/* Crystal / Glass UI */
+.crystal-glass {
+  background: var(--bg-card-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+}
+
+.crystal-glass-subtle {
+  background: rgba(17, 23, 38, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(245, 158, 11, 0.08);
+}
+
+html.light .crystal-glass-subtle {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+/* Subtle fade in for cards */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Base button scaling */
+.btn-premium {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s, box-shadow 0.2s;
+}
+
+.btn-premium:active {
+  transform: scale(0.96);
+}
+
+/* Ambient Radial Glow Background */
+.ambient-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at 50% 15%, rgba(245, 158, 11, 0.15), transparent 45%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+html.light .ambient-glow {
+  background: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.03) 50%, transparent 75%);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.3);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 119, 6, 0.5);
+}
+
+/* Floating Physics Animation for Install Button */
+@keyframes floatBob {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes floatShadow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(0.8);
+    opacity: 0.2;
+  }
+}
+
+.animate-float-bob {
+  animation: floatBob 3.2s ease-in-out infinite;
+}
+
+.animate-float-shadow {
+  animation: floatShadow 3.2s ease-in-out infinite;
+}
+
+/* Responsive Touch & Sizing Utilities */
+.min-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.input-mobile-standard {
+  min-height: 48px;
+  font-size: 16px;
+}
+
+.btn-mobile-primary {
+  min-height: 48px;
+  font-size: 16px;
+  font-weight: 700;
+}

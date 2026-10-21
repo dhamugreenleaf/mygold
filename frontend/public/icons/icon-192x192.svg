@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A2234"/>
+      <stop offset="50%" stop-color="#0E1422"/>
+      <stop offset="100%" stop-color="#080C14"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="30%" stop-color="#F59E0B"/>
+      <stop offset="70%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#92400E"/>
+    </linearGradient>
+    <linearGradient id="silverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="40%" stop-color="#E2E8F0"/>
+      <stop offset="70%" stop-color="#94A3B8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#F59E0B" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background Shield/Rounded Square -->
+  <rect width="192" height="192" rx="44" fill="url(#bgGrad)"/>
+  <rect width="188" height="188" x="2" y="2" rx="42" fill="none" stroke="url(#goldGrad)" stroke-width="2" stroke-opacity="0.4"/>
+
+  <!-- Inner Vault Motif -->
+  <circle cx="96" cy="96" r="62" fill="none" stroke="url(#goldGrad)" stroke-width="3" stroke-opacity="0.3" stroke-dasharray="6 4"/>
+
+  <!-- Stylized Gold Bullion Ingot + Coin Emblem -->
+  <g filter="url(#goldGlow)">
+    <!-- Gold Bar Isometric Base -->
+    <path d="M60 114 L96 94 L132 114 L96 134 Z" fill="url(#goldGrad)"/>
+    <path d="M60 114 L60 124 L96 144 L96 134 Z" fill="#B45309"/>
+    <path d="M132 114 L132 124 L96 144 L96 134 Z" fill="#78350F"/>
+    
+    <!-- Top Silver Ingot -->
+    <path d="M72 90 L96 76 L120 90 L96 104 Z" fill="url(#silverGrad)"/>
+    <path d="M72 90 L72 96 L96 110 L96 104 Z" fill="#64748B"/>
+    <path d="M120 90 L120 96 L96 110 L96 104 Z" fill="#334155"/>
+
+    <!-- Vault Crown Star -->
+    <polygon points="96,48 100,58 110,60 102,68 104,78 96,72 88,78 90,68 82,60 92,58" fill="#FDE68A"/>
+  </g>
+</svg>

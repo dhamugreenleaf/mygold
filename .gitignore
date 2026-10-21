@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+*/node_modules/
+package-lock.json.bak
+
+# Production & Build outputs
+dist/
+*/dist/
+build/
+*/build/
+web-build/
+*.aab
+*.apk
+*.zip
+*.bak
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Test & Coverage outputs
+test-results/
+*/test-results/
+playwright-report/
+*/playwright-report/
+coverage/
+*/coverage/
+
+# Logs & temporary files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Expo / Mobile specific
+.expo/
+.kotlin/
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Backend specific
+uploads/
+*/uploads/
