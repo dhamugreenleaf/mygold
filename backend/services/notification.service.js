@@ -5,17 +5,23 @@ import { getAllPurchasesWithMetrics } from './purchase.service.js';
 
 // Configure Web Push with VAPID Credentials
 const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@mygold.greenleafagencies.com';
-const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || 'BAIVCWF8sQd0FW_ShJbTeo7HyxA_EW_J9gdz2veIPX91Y20wJPHybTxFIHpw2F81QOuo3zuxYKIkCaIf9G3K7nM';
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'IORN6Rzv51Xg5yDAO4Pjtz1CDBRK9IyFG3r4oxuGy50';
+const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || '';
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
 
-try {
-  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
-} catch (vapidErr) {
-  console.warn('[Push Notification] VAPID initialization note:', vapidErr.message);
+let isVapidConfigured = false;
+if (vapidPublicKey && vapidPrivateKey) {
+  try {
+    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+    isVapidConfigured = true;
+  } catch (vapidErr) {
+    console.warn('[Push Notification] VAPID initialization error:', vapidErr.message);
+  }
+} else {
+  console.warn('[Push Notification] VAPID credentials missing in environment variables. Web push notifications disabled.');
 }
 
 export const getVapidPublicKey = () => {
-  return vapidPublicKey;
+  return vapidPublicKey || null;
 };
 
 export const getTodayDateIST = () => {
@@ -109,6 +115,10 @@ export const getUserNotificationStatus = async (userId) => {
  * Send Web Push notification to a specific subscription
  */
 export const sendPushToSubscription = async (subscription, payload) => {
+  if (!isVapidConfigured) {
+    return { success: false, error: 'Web Push is not configured with valid VAPID credentials.' };
+  }
+
   const pushConfig = {
     endpoint: subscription.endpoint,
     keys: {

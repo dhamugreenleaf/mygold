@@ -33,7 +33,7 @@ export const normalizeMobile = (mobile) => {
  * Directly verifies an OTP against MSG91 OTP Verify API
  */
 export const verifyMsg91OtpDirect = async (mobile, otp) => {
-  const authKey = process.env.MSG91_AUTH_KEY || '560885AodniWyqHerf6a82eee7P1';
+  const authKey = process.env.MSG91_AUTH_KEY || '';
   const normMobile = normalizeMobile(mobile);
   const cleanOtp = String(otp || '').trim();
 

@@ -5,7 +5,7 @@ import axios from 'axios';
  * Validates the access token returned by the frontend MSG91 Web SDK.
  */
 export const verifyMsg91AccessToken = async (accessToken) => {
-  const authKey = process.env.MSG91_AUTH_KEY || '560885AodniWyqHerf6a82eee7P1';
+  const authKey = process.env.MSG91_AUTH_KEY || '';
 
   if (!accessToken) {
     return { valid: false, message: 'Access token is required for verification.' };

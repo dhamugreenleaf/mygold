@@ -15,6 +15,12 @@ import { PushSubscription } from '../models/index.js';
 export const getVapidKey = async (req, res) => {
   try {
     const key = getVapidPublicKey();
+    if (!key) {
+      return res.status(503).json({
+        success: false,
+        message: 'Push notification service is not configured on this server.',
+      });
+    }
     return res.status(200).json({
       success: true,
       data: { publicKey: key },

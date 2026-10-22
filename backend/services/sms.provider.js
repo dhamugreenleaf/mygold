@@ -7,7 +7,7 @@ import axios from 'axios';
 export const sendSmsOtp = async (mobile, otp, context = 'AUTHENTICATION') => {
   const isEnabled = process.env.SMS_ENABLED === 'true';
   const mode = process.env.OTP_MODE || 'development';
-  const authKey = process.env.MSG91_AUTH_KEY || '560885AodniWyqHerf6a82eee7P1';
+  const authKey = process.env.MSG91_AUTH_KEY || '';
 
   // Normalize mobile number strictly to 91XXXXXXXXXX
   let cleaned = String(mobile || '').replace(/\D/g, '');
