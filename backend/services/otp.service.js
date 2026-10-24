@@ -32,13 +32,44 @@ export const normalizeMobile = (mobile) => {
 /**
  * Directly verifies an OTP against MSG91 OTP Verify API
  */
-export const verifyMsg91OtpDirect = async (mobile, otp) => {
+export const verifyMsg91OtpDirect = async (mobile, otp, reqId = null) => {
   const authKey = process.env.MSG91_AUTH_KEY || '';
+  const widgetId = process.env.MSG91_WIDGET_ID || '3668716a4864373039323834';
   const normMobile = normalizeMobile(mobile);
   const cleanOtp = String(otp || '').trim();
 
   if (!authKey || !normMobile || !cleanOtp) return false;
 
+  // 1. Try Widget verifyOtp if reqId is known
+  if (widgetId && reqId) {
+    try {
+      const widgetVerifyRes = await axios.post(
+        'https://api.msg91.com/api/v5/widget/verifyOtp',
+        {
+          widgetId,
+          otp: cleanOtp,
+          mobile: `91${normMobile}`,
+          reqId,
+        },
+        {
+          headers: {
+            authkey: authKey,
+            'Content-Type': 'application/json',
+          },
+          timeout: 8000,
+        }
+      );
+      const wData = widgetVerifyRes.data;
+      if (wData && (wData.type === 'success' || wData.status === 'success' || wData['access-token'])) {
+        console.log(`[MSG91 Widget Direct Verify] Successfully verified OTP for +91${normMobile}`);
+        return true;
+      }
+    } catch (wErr) {
+      console.warn('[MSG91 Widget Direct Verify Info]:', wErr.response?.data || wErr.message);
+    }
+  }
+
+  // 2. Direct MSG91 verify endpoint
   try {
     const response = await axios.get('https://control.msg91.com/api/v5/otp/verify', {
       params: {
@@ -94,8 +125,9 @@ export const requestOtp = async (mobile, purpose, metadata = null) => {
     }
   }
 
-  // Generate new OTP
-  const plainOtp = generateNumericOTP(6);
+  // Generate new OTP (4 digits for CHANGE_MOBILE, 6 digits default)
+  const otpLength = purpose === 'CHANGE_MOBILE' ? 4 : 6;
+  const plainOtp = generateNumericOTP(otpLength);
   const otpHash = await bcrypt.hash(plainOtp, 10);
   const expiresAt = new Date(now.getTime() + OTP_EXPIRY_MINUTES * 60000);
 
@@ -124,9 +156,16 @@ export const requestOtp = async (mobile, purpose, metadata = null) => {
   }
 
   // Send the SMS
-  await sendSmsOtp(normMobile, plainOtp, purpose);
+  const smsRes = await sendSmsOtp(normMobile, plainOtp, purpose);
+  if (smsRes?.reqId && record) {
+    try {
+      const currentMeta = typeof record.metadata === 'object' && record.metadata !== null ? record.metadata : {};
+      record.metadata = { ...currentMeta, reqId: smsRes.reqId };
+      await record.save();
+    } catch (_) {}
+  }
 
-  return { success: true, message: 'OTP sent successfully.', otp: plainOtp };
+  return { success: true, message: 'OTP sent successfully.', otp: plainOtp, reqId: smsRes?.reqId };
 };
 
 /**
@@ -165,7 +204,8 @@ export const verifyOtp = async (mobile, plainOtp, purpose) => {
 
   // If local DB check didn't pass, verify against MSG91 OTP verification API as fallback
   if (!isVerified) {
-    const isMsg91Valid = await verifyMsg91OtpDirect(normMobile, cleanOtp);
+    const reqId = record?.metadata?.reqId || null;
+    const isMsg91Valid = await verifyMsg91OtpDirect(normMobile, cleanOtp, reqId);
     if (isMsg91Valid) {
       isVerified = true;
     }

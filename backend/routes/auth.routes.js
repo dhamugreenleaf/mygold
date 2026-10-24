@@ -21,6 +21,7 @@ import {
   login,
   requestForgotUsernameOtp,
   verifyForgotUsernameOtp,
+  verifyForgotUsernameMsg91,
   requestForgotPasswordOtp,
   verifyForgotPasswordOtp,
   resetPassword,
@@ -43,6 +44,7 @@ router.post('/login-msg91', loginWithMsg91);
 // Forgot Username
 router.post('/forgot-username/request-otp', requestForgotUsernameOtp);
 router.post('/forgot-username/verify-otp', verifyForgotUsernameOtp);
+router.post('/forgot-username/verify-msg91', verifyForgotUsernameMsg91);
 
 // Forgot Password
 router.post('/forgot-password/request', requestForgotPasswordOtp);

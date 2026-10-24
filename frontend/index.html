@@ -23,6 +23,14 @@
   <!-- Web App Manifest -->
   <link rel="manifest" href="/manifest.json" />
 
+  <!-- Early PWA Install Prompt Capture -->
+  <script>
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      window.deferredPwaPrompt = e;
+    });
+  </script>
+
   <!-- Google Fonts Preconnect & Stylesheets -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

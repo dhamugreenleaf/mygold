@@ -53,12 +53,7 @@ export const registerUser = async ({ username, email, password }) => {
     throw error;
   }
 
-  let finalUsername = cleanUsername;
-  const existingUsername = await User.findOne({ where: { username: cleanUsername } });
-  if (existingUsername) {
-    // Append a random string to make it unique without bothering the user
-    finalUsername = `${cleanUsername}_${Math.floor(Math.random() * 10000)}`;
-  }
+  const finalUsername = cleanUsername;
 
   // 5. Hash Password & Create User
   const saltRounds = 10;

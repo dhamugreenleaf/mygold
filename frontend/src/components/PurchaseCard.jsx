@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { formatCurrency, formatGrams, formatReadableDate } from '../utils/formatters';
 import { useLanguage } from '../context/LanguageContext';
 import EditAssetModal from './common/EditAssetModal';
@@ -35,10 +36,10 @@ export const PurchaseCard = ({ purchase, onDelete, onUpdated, showDelete = true,
   const weight = purchase.weight || 0;
   const formattedWeight = formatGrams(weight, language);
 
-  const invoiceDoc = purchase.invoice_document || purchase.invoice;
-  const jewelDoc = purchase.jewel_document || purchase.photo;
-  const invoiceUrl = invoiceDoc?.url || purchase.invoice_url;
-  const jewelUrl = jewelDoc?.url || purchase.jewel_url || purchase.photo_url;
+  const invoiceDoc = purchase.invoice_document || purchase.invoice || purchase.documents?.invoice;
+  const jewelDoc = purchase.jewel_document || purchase.photo || purchase.documents?.jewelleryPhoto || purchase.documents?.jewellery_image;
+  const invoiceUrl = invoiceDoc?.url || purchase.invoice_url || purchase.invoice_image || (invoiceDoc ? `/api/purchases/${purchase.id}/invoice` : null);
+  const jewelUrl = jewelDoc?.url || purchase.jewel_url || purchase.photo_url || purchase.jewellery_image || (jewelDoc ? `/api/purchases/${purchase.id}/jewellery-photo` : null);
 
   const hasRate = !purchase.isRateUnavailable;
   const amountPaid = purchase.amount_paid ?? purchase.purchase_amount ?? purchase.purchase_value ?? 0;
@@ -76,12 +77,56 @@ export const PurchaseCard = ({ purchase, onDelete, onUpdated, showDelete = true,
 
   const handleOpenDoc = (url, title, fileName, type = 'image') => {
     if (!url) return;
-    setModalUrl(url);
+    const token = localStorage.getItem('aurum_token');
+    const authUrl = `${url}${url.includes('?') ? '&' : '?'}token=${token || ''}`;
+    setModalUrl(authUrl);
     setModalTitle(title);
     setModalSubtitle(`${purity} ${isSilver ? t('silverAsset') : t('goldAsset')} • ${formattedWeight}`);
     setModalFileName(fileName || '');
     setModalType(type);
     setModalOpen(true);
+  };
+
+  const handleDownload = async (e, url, fileName) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (!url) return;
+
+    try {
+      const token = localStorage.getItem('aurum_token');
+      // Format URL for direct API download
+      const cleanUrl = url.split('?')[0];
+      const targetUrl = `${cleanUrl}?download=true${token ? `&token=${token}` : ''}`;
+
+      const res = await fetch(targetUrl, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Download failed with status ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName || 'download';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+      toast.success(isTamil ? 'கோப்பு வெற்றிகரமாக பதிவிறக்கப்பட்டது! 📁' : 'File downloaded successfully! 📁');
+    } catch (err) {
+      console.warn('Authenticated download fallback:', err);
+      const token = localStorage.getItem('aurum_token');
+      const cleanUrl = url.split('?')[0];
+      const fallbackUrl = `${cleanUrl}?download=true${token ? `&token=${token}` : ''}`;
+      window.open(fallbackUrl, '_blank');
+    }
   };
 
   return (
@@ -254,35 +299,129 @@ export const PurchaseCard = ({ purchase, onDelete, onUpdated, showDelete = true,
               </div>
             </div>
 
-            {/* Document / Photo View Buttons */}
-            {(invoiceUrl || jewelUrl) && (
-              <div className="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                {invoiceUrl && (
+            {/* Documents & Photos Section */}
+            <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-extrabold text-slate-900 dark:text-slate-200 flex items-center gap-1.5">
+                  <FiFileText className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{isTamil ? 'பில் & புகைப்படம்' : 'Invoice & Asset Photo'}</span>
+                </span>
+                {(!invoiceUrl || !jewelUrl) && (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleOpenDoc(invoiceUrl, `${t('viewInvoice')} - ${itemName}`, invoiceDoc?.originalName, 'pdf');
+                      setEditModalOpen(true);
                     }}
-                    className="flex-1 flex justify-center items-center gap-1.5 py-2.5 px-3 min-h-[44px] rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-bold transition-all hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer border border-slate-200 dark:border-slate-700"
+                    className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
                   >
-                    <FiFileText className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" /> <span className="truncate">{t('viewInvoice')}</span>
-                  </button>
-                )}
-                {jewelUrl && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenDoc(jewelUrl, `${t('viewPhoto')} - ${itemName}`, jewelDoc?.originalName, 'image');
-                    }}
-                    className="flex-1 flex justify-center items-center gap-1.5 py-2.5 px-3 min-h-[44px] rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm font-bold transition-all hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer border border-slate-200 dark:border-slate-700"
-                  >
-                    <FiImage className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" /> <span className="truncate">{t('viewPhoto')}</span>
+                    <span>+ {isTamil ? 'கோப்பு சேர்க்க' : 'Add File'}</span>
                   </button>
                 )}
               </div>
-            )}
+
+              {(invoiceUrl || jewelUrl) ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {invoiceUrl && (() => {
+                    const isInvoicePdf = (invoiceDoc?.originalName || '').toLowerCase().endsWith('.pdf');
+                    const defaultInvoiceName = isInvoicePdf ? 'invoice.pdf' : 'invoice.jpg';
+                    const invoiceFileName = invoiceDoc?.originalName || defaultInvoiceName;
+
+                    return (
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800">
+                        <div className="flex items-center gap-2 min-w-0 pr-2">
+                          {isInvoicePdf ? (
+                            <FiFileText className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          ) : (
+                            <FiImage className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                              {isTamil ? 'பில் / ரசீது' : 'Purchase Invoice'}
+                            </p>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                              {invoiceFileName}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDoc(invoiceUrl, `${t('viewInvoice')} - ${itemName}`, invoiceFileName, isInvoicePdf ? 'pdf' : 'image');
+                            }}
+                            title={t('viewInvoice')}
+                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 cursor-pointer"
+                          >
+                            {isTamil ? 'பார்' : 'View'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDownload(e, invoiceUrl, invoiceFileName)}
+                            title={isTamil ? 'பதிவிறக்கு' : 'Download'}
+                            className="p-1.5 rounded-lg bg-gold-metallic hover:bg-gold-metallic-hover text-slate-950 cursor-pointer flex items-center justify-center shadow-xs"
+                          >
+                            <FiDownload className="w-3.5 h-3.5 stroke-[2.5]" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {jewelUrl && (
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800">
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <FiImage className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                            {isTamil ? 'நகை புகைப்படம்' : 'Asset Photo'}
+                          </p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                            {jewelDoc?.originalName || 'photo.jpg'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDoc(jewelUrl, `${t('viewPhoto')} - ${itemName}`, jewelDoc?.originalName, 'image');
+                          }}
+                          title={t('viewPhoto')}
+                          className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 cursor-pointer"
+                        >
+                          {isTamil ? 'பார்' : 'View'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDownload(e, jewelUrl, jewelDoc?.originalName || 'asset-photo.jpg')}
+                          title={isTamil ? 'பதிவிறக்கு' : 'Download'}
+                          className="p-1.5 rounded-lg bg-gold-metallic hover:bg-gold-metallic-hover text-slate-950 cursor-pointer flex items-center justify-center shadow-xs"
+                        >
+                          <FiDownload className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-xs text-slate-600 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-950/60 p-2.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <span>{isTamil ? 'பில் அல்லது புகைப்படம் இணைக்கப்படவில்லை' : 'No invoice or asset photo attached'}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditModalOpen(true);
+                    }}
+                    className="text-amber-600 dark:text-amber-400 font-bold hover:underline cursor-pointer ml-2 not-italic"
+                  >
+                    {isTamil ? 'இணைக்கவும்' : 'Upload Now'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -342,14 +481,14 @@ export const PurchaseCard = ({ purchase, onDelete, onUpdated, showDelete = true,
                   <FiExternalLink className="w-3.5 h-3.5" />
                   <span>{isTamil ? 'திறக்கவும்' : 'Open'}</span>
                 </a>
-                <a
-                  href={modalUrl}
-                  download={modalFileName || 'document'}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 font-heading"
+                <button
+                  type="button"
+                  onClick={(e) => handleDownload(e, modalUrl, modalFileName || 'document')}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-gold-metallic hover:bg-gold-metallic-hover text-slate-950 font-heading shadow-xs cursor-pointer"
                 >
                   <FiDownload className="w-3.5 h-3.5" />
                   <span>{isTamil ? 'பதிவிறக்கு' : 'Download'}</span>
-                </a>
+                </button>
               </div>
             </div>
           </div>

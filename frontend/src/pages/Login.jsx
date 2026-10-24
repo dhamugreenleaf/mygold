@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { login } from '../services/api';
@@ -7,7 +7,8 @@ import toast from 'react-hot-toast';
 import { FiArrowRight, FiShield, FiLock, FiUser, FiEye, FiEyeOff } from 'react-icons/fi';
 
 export const Login = () => {
-  const [username, setUsername] = useState('');
+  const location = useLocation();
+  const [username, setUsername] = useState(location.state?.username || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);

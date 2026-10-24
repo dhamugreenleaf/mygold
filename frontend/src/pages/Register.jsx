@@ -174,7 +174,7 @@ export const Register = () => {
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
-                  placeholder={isTamil ? 'பயனர் பெயரைத் தேர்வு செய்யவும்' : 'Choose a username'}
+                  placeholder={isTamil ? 'உங்கள் முழு பெயர் / பயனர் பெயர்' : 'Full Name / Username'}
                   className="w-full pl-10 pr-4 min-h-[48px] py-3 bg-[var(--bg-subtle)] dark:bg-slate-950/50 border border-[var(--border-color)] dark:border-slate-800 rounded-xl focus:border-amber-500 outline-none text-base font-bold text-[var(--text-primary)] dark:text-white"
                   required
                 />

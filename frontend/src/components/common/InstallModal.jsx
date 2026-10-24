@@ -12,7 +12,7 @@ import {
 } from 'react-icons/fi';
 
 export const InstallModal = () => {
-  const { isInstallModalOpen, closeInstallModal, executeInstall } = usePWA();
+  const { isInstallModalOpen, closeInstallModal, executeInstall, isIOS, hasPrompt } = usePWA();
 
   if (!isInstallModalOpen) {
     return null;
@@ -60,49 +60,63 @@ export const InstallModal = () => {
 
           <div className="flex items-center gap-2 mb-1">
             <h3 className="text-xl sm:text-2xl font-black font-heading tracking-tight text-white">
-              Install Aurum Vault
+              Install MyGold App
             </h3>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-mono tracking-wider shadow-xs">
               PWA
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-300 font-medium max-w-xs">
-            Add to your home screen for the full app experience with fast offline access.
+            Add to your device for instant 1-tap vault access and fast offline loading.
           </p>
         </div>
 
-        {/* Feature Benefits List */}
-        <div className="my-5 space-y-2.5 bg-slate-900/60 rounded-2xl p-4 border border-slate-800/80 relative z-10">
-          <div className="flex items-start gap-3">
-            <div className="w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
-              <FiZap className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-100 font-heading">1-Tap Fast Launch</p>
-              <p className="text-[11px] text-slate-400 leading-tight">Instant opening without browser address bar clutter.</p>
-            </div>
+        {/* iOS-Specific Instructions */}
+        {isIOS ? (
+          <div className="my-5 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-100 text-xs space-y-2 relative z-10">
+            <p className="font-bold text-amber-300 text-sm flex items-center gap-1.5 font-heading">
+              <FiSmartphone className="w-4 h-4" /> Install on iPhone / iPad:
+            </p>
+            <ol className="list-decimal list-inside space-y-1 text-slate-200">
+              <li>Tap the <strong>Share</strong> button (square with arrow ⎋) in Safari bottom bar.</li>
+              <li>Scroll down and tap <strong>"Add to Home Screen"</strong> (➕).</li>
+              <li>Tap <strong>Add</strong> at top right to complete installation.</li>
+            </ol>
           </div>
+        ) : (
+          /* Feature Benefits List for Android & Desktop */
+          <div className="my-5 space-y-2.5 bg-slate-900/60 rounded-2xl p-4 border border-slate-800/80 relative z-10">
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                <FiZap className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-100 font-heading">1-Tap Fast Launch</p>
+                <p className="text-[11px] text-slate-400 leading-tight">Instant opening without browser address bar clutter.</p>
+              </div>
+            </div>
 
-          <div className="flex items-start gap-3">
-            <div className="w-7 h-7 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
-              <FiCheckCircle className="w-4 h-4" />
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                <FiCheckCircle className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-100 font-heading">Offline Vault Ledger</p>
+                <p className="text-[11px] text-slate-400 leading-tight">View assets and compute valuations even without internet.</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-bold text-slate-100 font-heading">Offline Vault Ledger</p>
-              <p className="text-[11px] text-slate-400 leading-tight">View assets and compute valuations even without internet.</p>
-            </div>
-          </div>
 
-          <div className="flex items-start gap-3">
-            <div className="w-7 h-7 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
-              <FiTrendingUp className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-100 font-heading">Live Chennai Bullion Sync</p>
-              <p className="text-[11px] text-slate-400 leading-tight">Automatic background retail rate updates for 24K, 22K & Silver.</p>
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                <FiTrendingUp className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-100 font-heading">Live Chennai Bullion Sync</p>
+                <p className="text-[11px] text-slate-400 leading-tight">Automatic background retail rate updates for 24K, 22K & Silver.</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Action Buttons */}
         <div className="space-y-2 relative z-10">
@@ -112,7 +126,7 @@ export const InstallModal = () => {
             className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/35 hover:shadow-amber-500/50 transition-all transform hover:scale-[1.02] active:scale-95 cursor-pointer font-heading flex items-center justify-center gap-2 border border-amber-300/40"
           >
             <FiDownloadCloud className="w-5 h-5 stroke-[2.5]" />
-            <span>Install App to Device</span>
+            <span>{isIOS ? 'Got It' : 'Install App to Device'}</span>
           </button>
 
           <button

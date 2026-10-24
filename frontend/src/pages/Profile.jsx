@@ -28,14 +28,19 @@ import {
   getAssets,
   requestChangeMobileOtp,
   verifyChangeMobileOtp,
-  requestProfileUpdateOtp,
-  verifyProfileUpdateOtp,
+  updateProfile,
   cancelMonthlySubscription,
   pauseMonthlySubscription,
   resumeMonthlySubscription,
   getEntitlementStatus,
   getNotificationStatus,
 } from '../services/api';
+import {
+  initSendOtpWidget,
+  sendOtpViaWidget,
+  verifyOtpViaWidget,
+  retryOtpViaWidget,
+} from '../utils/msg91Otp';
 import {
   enablePushNotifications,
   disablePushNotifications,
@@ -64,16 +69,14 @@ export const Profile = () => {
   const [newMobile, setNewMobile] = useState('');
   const [mobileOtp, setMobileOtp] = useState('');
   const [mobileLoading, setMobileLoading] = useState(false);
+  const [mobileCooldown, setMobileCooldown] = useState(0);
 
-  // Edit Profile State
+  // Edit Profile State (Direct update - No OTP required)
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
-  const [editStep, setEditStep] = useState(1);
   const [editUsername, setEditUsername] = useState(user?.username || user?.name || '');
   const [editEmail, setEditEmail] = useState(user?.email || '');
-  const [editOtp, setEditOtp] = useState('');
   const [editLoading, setEditLoading] = useState(false);
-  const [editCooldown, setEditCooldown] = useState(0);
 
   // Daily Notification Settings Context
   const {
@@ -89,12 +92,16 @@ export const Profile = () => {
   } = useNotification();
 
   useEffect(() => {
+    initSendOtpWidget();
+  }, []);
+
+  useEffect(() => {
     let timer;
-    if (editCooldown > 0) {
-      timer = setInterval(() => setEditCooldown((c) => c - 1), 1000);
+    if (mobileCooldown > 0) {
+      timer = setInterval(() => setMobileCooldown((c) => c - 1), 1000);
     }
     return () => clearInterval(timer);
-  }, [editCooldown]);
+  }, [mobileCooldown]);
 
   useEffect(() => {
     const fetchAssetCountAndEntitlement = async () => {
@@ -167,63 +174,57 @@ export const Profile = () => {
     }
   };
 
-  const handleRequestEditOtp = async (e) => {
+  const handleSaveProfile = async (e) => {
     if (e) e.preventDefault();
-    if (!editUsername) return toast.error('Username cannot be empty');
+    const cleanUsername = editUsername.trim();
+    if (!cleanUsername) return toast.error(isTamil ? 'பயனர் பெயரை உள்ளிடவும்' : 'Username cannot be empty');
+    if (cleanUsername.length < 3) return toast.error(isTamil ? 'பயனர் பெயர் குறைந்தது 3 எழுத்துகள் இருக்க வேண்டும்' : 'Username must be at least 3 characters');
     
     // Check if nothing changed
-    if (editUsername === (user?.username || user?.name) && editEmail === (user?.email || '')) {
-      return toast.error('No changes to save.');
+    if (cleanUsername === (user?.username || user?.name) && editEmail.trim() === (user?.email || '')) {
+      return toast.error(isTamil ? 'மாற்றங்கள் எதுவும் இல்லை' : 'No changes to save.');
     }
 
     try {
       setEditLoading(true);
-      const res = await requestProfileUpdateOtp({ username: editUsername, email: editEmail });
+      const res = await updateProfile({ username: cleanUsername, email: editEmail.trim() });
       if (res.success) {
-        toast.success(res.message);
-        setEditStep(2);
-        setEditCooldown(30);
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to request OTP');
-    } finally {
-      setEditLoading(false);
-    }
-  };
-
-  const handleVerifyEditOtp = async (e) => {
-    e.preventDefault();
-    if (!editOtp || editOtp.length !== 6) return toast.error('Enter a 6-digit OTP');
-
-    try {
-      setEditLoading(true);
-      const res = await verifyProfileUpdateOtp(editOtp);
-      if (res.success) {
-        toast.success('Profile updated successfully');
+        toast.success(isTamil ? 'சுயவிவரம் புதுப்பிக்கப்பட்டது! 🎉' : 'Profile updated successfully! 🎉');
+        if (setAuthSession && res.data?.user) {
+          const currentToken = localStorage.getItem('aurum_token');
+          setAuthSession(currentToken, res.data.user);
+        }
         setShowEditProfileModal(false);
-        setEditStep(1);
-        setEditOtp('');
-        window.location.reload(); 
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update profile');
+      toast.error(err.response?.data?.message || err.message || (isTamil ? 'சுயவிவரத்தை புதுப்பிக்க முடியவில்லை' : 'Failed to update profile'));
     } finally {
       setEditLoading(false);
     }
   };
 
   const handleRequestChangeMobile = async (e) => {
-    e.preventDefault();
-    if (!newMobile || newMobile.length < 10) return toast.error('Enter a valid mobile number');
+    if (e) e.preventDefault();
+    const cleanMobile = newMobile.replace(/\D/g, '').slice(-10);
+    if (!cleanMobile || cleanMobile.length !== 10) {
+      return toast.error(isTamil ? 'சரியான 10 இலக்க மொபைல் எண்ணை உள்ளிடவும்' : 'Please enter a valid 10-digit mobile number');
+    }
+    const currentPhone = (user?.phone || '').replace(/\D/g, '').slice(-10);
+    if (cleanMobile === currentPhone) {
+      return toast.error(isTamil ? 'இது உங்கள் தற்போதைய மொபைல் எண்' : 'This is already your current registered mobile number');
+    }
+
     try {
       setMobileLoading(true);
-      const res = await requestChangeMobileOtp(newMobile);
-      if (res.success) {
-        toast.success('OTP sent to new mobile');
-        setMobileStep(2);
-      }
+      const res = await requestChangeMobileOtp(cleanMobile);
+      // Dispatch via MSG91 Web Widget in background for reliable SMS delivery in production
+      sendOtpViaWidget(cleanMobile).catch(() => {});
+      toast.success(res?.message || (isTamil ? 'புதிய மொபைல் எண்ணிற்கு OTP அனுப்பப்பட்டது' : 'OTP sent to new mobile'));
+      setNewMobile(cleanMobile);
+      setMobileStep(2);
+      setMobileCooldown(60);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to request OTP');
+      toast.error(err.response?.data?.message || err.message || (isTamil ? 'OTP அனுப்ப முடியவில்லை' : 'Failed to request OTP'));
     } finally {
       setMobileLoading(false);
     }
@@ -231,20 +232,58 @@ export const Profile = () => {
 
   const handleVerifyChangeMobile = async (e) => {
     e.preventDefault();
-    if (!mobileOtp || mobileOtp.length !== 6) return toast.error('Enter a 6-digit OTP');
+    const cleanOtp = String(mobileOtp || '').replace(/\D/g, '').trim();
+    if (!cleanOtp || cleanOtp.length !== 4) {
+      return toast.error(isTamil ? 'சரியான 4 இலக்க OTP குறியீட்டை உள்ளிடவும்' : 'Please enter the 4-digit OTP');
+    }
+    const cleanMobile = newMobile.replace(/\D/g, '').slice(-10);
+
     try {
       setMobileLoading(true);
-      const res = await verifyChangeMobileOtp(newMobile, mobileOtp);
+
+      // 1. Attempt verification via MSG91 Web Widget if available
+      let msg91Token = null;
+      try {
+        const widgetResult = await Promise.race([
+          verifyOtpViaWidget(cleanMobile, cleanOtp),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+        ]);
+        msg91Token = widgetResult?.accessToken;
+      } catch (widgetErr) {
+        console.warn('[MSG91 Widget Verify Fallback]:', widgetErr?.message || widgetErr);
+      }
+
+      // 2. Send to backend
+      const res = await verifyChangeMobileOtp(cleanMobile, cleanOtp, msg91Token);
       if (res.success) {
-        toast.success('Mobile number updated successfully');
+        toast.success(isTamil ? 'மொபைல் எண் வெற்றிகரமாக மாற்றப்பட்டது! 🎉' : 'Mobile number updated successfully! 🎉');
+        if (setAuthSession && res.data?.user) {
+          const currentToken = localStorage.getItem('aurum_token');
+          setAuthSession(currentToken, res.data.user);
+        }
         setShowMobileModal(false);
         setMobileStep(1);
         setNewMobile('');
         setMobileOtp('');
-        window.location.reload(); // Quick refresh to update Context
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to verify OTP');
+      toast.error(err.response?.data?.message || err.message || (isTamil ? 'தவறான OTP குறியீடு' : 'Failed to verify OTP'));
+    } finally {
+      setMobileLoading(false);
+    }
+  };
+
+  const handleResendChangeMobile = async () => {
+    if (mobileCooldown > 0 || mobileLoading) return;
+    const cleanMobile = newMobile.replace(/\D/g, '').slice(-10);
+    try {
+      setMobileLoading(true);
+      retryOtpViaWidget(cleanMobile).catch(() => {});
+      const res = await requestChangeMobileOtp(cleanMobile);
+      toast.success(res?.message || (isTamil ? 'OTP மீண்டும் அனுப்பப்பட்டது' : 'OTP resent successfully'));
+      setMobileCooldown(60);
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || (isTamil ? 'மீண்டும் OTP அனுப்ப முடியவில்லை' : 'Failed to resend OTP'));
     } finally {
       setMobileLoading(false);
     }
@@ -684,7 +723,11 @@ export const Profile = () => {
       <div className="bg-[var(--bg-card)] dark:bg-slate-900/80 rounded-3xl border border-[var(--border-color)] dark:border-slate-800/80 shadow-[0_4px_24px_rgba(0,0,0,0.02)] dark:shadow-sm overflow-hidden">
         <div className="divide-y divide-[var(--border-color)] dark:divide-slate-800/80">
           <button 
-            onClick={() => setShowEditProfileModal(true)}
+            onClick={() => {
+              setEditUsername(user?.username || user?.name || '');
+              setEditEmail(user?.email || '');
+              setShowEditProfileModal(true);
+            }}
             className="w-full px-5 py-4 flex items-center justify-between hover:bg-[var(--bg-subtle)] dark:hover:bg-slate-800/50 transition-colors"
           >
             <div className="flex items-center gap-3 text-[var(--text-primary)] dark:text-slate-300">
@@ -737,9 +780,7 @@ export const Profile = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-[var(--text-secondary)] dark:text-slate-400 font-medium mt-0.5">
-                    Receive daily scheduled alerts (9:00 AM, 1:00 PM & 6:30 PM).
-                  </p>
+
                 </div>
               </div>
 
@@ -799,29 +840,7 @@ export const Profile = () => {
               </div>
             )}
 
-            {/* Send Test Notification Button */}
-            {isPushSupported && (
-              <div className="mt-3.5">
-                <button
-                  type="button"
-                  onClick={handleSendTestNotification}
-                  disabled={notifTesting}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:border-amber-400 text-xs font-bold font-heading uppercase tracking-wider transition-all cursor-pointer shadow-xs active:scale-98"
-                >
-                  {notifTesting ? (
-                    <>
-                      <FiLoader className="w-3.5 h-3.5 animate-spin" />
-                      <span>Sending Test Push Notification...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FiSend className="w-3.5 h-3.5" />
-                      <span>Send Test Push Notification (Check Lock Screen)</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
+
           </div>
         </div>
       </div>
@@ -868,7 +887,7 @@ export const Profile = () => {
                       <input
                         type="tel"
                         value={newMobile}
-                        onChange={(e) => setNewMobile(e.target.value.replace(/\D/g, ''))}
+                        onChange={(e) => setNewMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
                         placeholder="Enter 10-digit number"
                         maxLength="10"
                         className="w-full pl-[88px] pr-4 py-3.5 bg-[var(--bg-subtle)] dark:bg-slate-950/50 border border-[var(--border-color)] dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-[var(--border-glow)] dark:focus:ring-amber-500/20 focus:border-[var(--text-gold)] dark:focus:border-amber-500 outline-none transition-all text-sm font-bold tracking-wide text-[var(--text-primary)] dark:text-white placeholder:font-medium placeholder:text-slate-400 placeholder:tracking-normal"
@@ -881,42 +900,71 @@ export const Profile = () => {
                     disabled={mobileLoading || newMobile.length !== 10}
                     className="w-full bg-[var(--gold-2)] dark:bg-white text-[var(--text-primary)] dark:text-slate-900 py-3.5 rounded-xl font-bold text-sm hover:-translate-y-0.5 disabled:opacity-50 transition-all font-heading"
                   >
-                    {mobileLoading ? 'Sending...' : 'Send OTP'}
+                    {mobileLoading ? 'Sending OTP...' : 'Send OTP'}
                   </button>
                 </form>
               ) : (
                 <form onSubmit={handleVerifyChangeMobile} className="space-y-5">
-                  <p className="text-sm text-[var(--text-secondary)] dark:text-slate-400 text-center">
-                    Enter the code sent to +91 {newMobile.slice(-4).padStart(10, '*')}
+                  <p className="text-sm text-[var(--text-secondary)] dark:text-slate-400 text-center leading-relaxed">
+                    Enter the 4-digit OTP sent to <br/>
+                    <span className="font-bold text-[var(--text-primary)] dark:text-white">+91 {newMobile}</span>
                   </p>
-                  <div className="flex justify-between gap-2">
-                    {[...Array(6)].map((_, i) => (
+                  <div className="flex justify-center gap-3">
+                    {[...Array(4)].map((_, i) => (
                       <input
                         key={`mobile-otp-${i}`}
                         type="text"
                         maxLength="1"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
                         value={mobileOtp[i] || ''}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
+                          if (pasteData) {
+                            setMobileOtp(pasteData);
+                          }
+                        }}
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, '');
                           const newOtp = mobileOtp.split('');
-                          newOtp[i] = val;
-                          setMobileOtp(newOtp.join('').slice(0,6));
-                          if (val && e.target.nextSibling) {
-                            e.target.nextSibling.focus();
+                          newOtp[i] = val.slice(-1);
+                          setMobileOtp(newOtp.join('').slice(0, 4));
+                          if (val && e.target.nextElementSibling) {
+                            e.target.nextElementSibling.focus();
                           }
                         }}
                         onKeyDown={(e) => {
-                          if (e.key === 'Backspace' && !mobileOtp[i] && e.target.previousSibling) {
-                            e.target.previousSibling.focus();
+                          if (e.key === 'Backspace' && !mobileOtp[i] && e.target.previousElementSibling) {
+                            e.target.previousElementSibling.focus();
                           }
                         }}
-                        className="w-12 h-14 bg-[var(--bg-subtle)] dark:bg-slate-950/50 border border-[var(--border-color)] dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-[var(--border-glow)] dark:focus:ring-amber-500/20 focus:border-[var(--text-gold)] dark:focus:border-amber-500 outline-none transition-all text-2xl font-black text-[var(--text-primary)] dark:text-white text-center"
+                        className="w-14 h-16 bg-[var(--bg-subtle)] dark:bg-slate-950/50 border border-[var(--border-color)] dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-[var(--border-glow)] dark:focus:ring-amber-500/20 focus:border-[var(--text-gold)] dark:focus:border-amber-500 outline-none transition-all text-2xl font-black text-[var(--text-primary)] dark:text-white text-center shadow-inner"
                       />
                     ))}
                   </div>
+
+                  <div className="flex items-center justify-between text-xs font-bold pt-1">
+                    <button
+                      type="button"
+                      onClick={() => { setMobileStep(1); setMobileOtp(''); }}
+                      className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] dark:text-slate-400 dark:hover:text-white transition-colors"
+                    >
+                      Change Number
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResendChangeMobile}
+                      disabled={mobileCooldown > 0 || mobileLoading}
+                      className="text-[var(--text-gold)] dark:text-amber-400 disabled:text-[var(--text-muted)] dark:disabled:text-slate-500 transition-colors"
+                    >
+                      {mobileCooldown > 0 ? `Resend OTP in 00:${mobileCooldown.toString().padStart(2, '0')}` : 'Resend OTP'}
+                    </button>
+                  </div>
+
                   <button
                     type="submit"
-                    disabled={mobileLoading || mobileOtp.length !== 6}
+                    disabled={mobileLoading || mobileOtp.length !== 4}
                     className="w-full bg-[var(--gold-2)] dark:bg-gradient-to-r dark:from-amber-500 dark:to-amber-600 text-[var(--text-primary)] dark:text-white py-3.5 rounded-xl font-bold text-sm hover:-translate-y-0.5 disabled:opacity-50 transition-all font-heading"
                   >
                     {mobileLoading ? 'Verifying...' : 'Verify & Update'}
@@ -928,6 +976,7 @@ export const Profile = () => {
         </div>
       )}
 
+      {/* Edit Profile Modal (Direct Update - No OTP needed) */}
       {showEditProfileModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[var(--bg-card)] dark:bg-slate-900 w-full max-w-sm rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] overflow-hidden animate-in slide-in-from-bottom-4 duration-300 border border-[var(--border-color)] dark:border-slate-800">
@@ -936,7 +985,7 @@ export const Profile = () => {
                 Edit Profile
               </h3>
               <button 
-                onClick={() => { setShowEditProfileModal(false); setEditStep(1); setEditUsername(user?.username || user?.name || ''); setEditEmail(user?.email || ''); setEditOtp(''); }}
+                onClick={() => setShowEditProfileModal(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--bg-subtle)] dark:bg-slate-800 text-[var(--text-muted)] hover:text-[var(--text-primary)] dark:hover:text-slate-300 transition-colors"
               >
                 <FiX className="w-4 h-4" />
@@ -944,93 +993,45 @@ export const Profile = () => {
             </div>
             
             <div className="p-6">
-              {editStep === 1 ? (
-                <form onSubmit={handleRequestEditOtp} className="space-y-5">
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] dark:text-slate-500 ml-1">Username</label>
-                    <input
-                      type="text"
-                      value={editUsername}
-                      onChange={(e) => setEditUsername(e.target.value)}
-                      placeholder="Enter your username"
-                      className="w-full px-4 py-3.5 bg-[var(--bg-subtle)] dark:bg-slate-950/50 border border-[var(--border-color)] dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-[var(--border-glow)] dark:focus:ring-amber-500/20 focus:border-[var(--text-gold)] dark:focus:border-amber-500 outline-none transition-all text-sm font-bold text-[var(--text-primary)] dark:text-white placeholder:font-medium placeholder:text-slate-400"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] dark:text-slate-500 ml-1">Email (Optional)</label>
-                    <input
-                      type="email"
-                      value={editEmail}
-                      onChange={(e) => setEditEmail(e.target.value)}
-                      placeholder="Enter your email"
-                      className="w-full px-4 py-3.5 bg-[var(--bg-subtle)] dark:bg-slate-950/50 border border-[var(--border-color)] dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-[var(--border-glow)] dark:focus:ring-amber-500/20 focus:border-[var(--text-gold)] dark:focus:border-amber-500 outline-none transition-all text-sm font-bold text-[var(--text-primary)] dark:text-white placeholder:font-medium placeholder:text-slate-400"
-                    />
-                  </div>
+              <form onSubmit={handleSaveProfile} className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] dark:text-slate-500 ml-1">Username</label>
+                  <input
+                    type="text"
+                    value={editUsername}
+                    onChange={(e) => setEditUsername(e.target.value)}
+                    placeholder="Enter your username"
+                    className="w-full px-4 py-3.5 bg-[var(--bg-subtle)] dark:bg-slate-950/50 border border-[var(--border-color)] dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-[var(--border-glow)] dark:focus:ring-amber-500/20 focus:border-[var(--text-gold)] dark:focus:border-amber-500 outline-none transition-all text-sm font-bold text-[var(--text-primary)] dark:text-white placeholder:font-medium placeholder:text-slate-400"
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] dark:text-slate-500 ml-1">Email (Optional)</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="w-full px-4 py-3.5 bg-[var(--bg-subtle)] dark:bg-slate-950/50 border border-[var(--border-color)] dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-[var(--border-glow)] dark:focus:ring-amber-500/20 focus:border-[var(--text-gold)] dark:focus:border-amber-500 outline-none transition-all text-sm font-bold text-[var(--text-primary)] dark:text-white placeholder:font-medium placeholder:text-slate-400"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditProfileModal(false)}
+                    className="flex-1 py-3.5 rounded-xl bg-[var(--bg-subtle)] dark:bg-slate-800 text-[var(--text-secondary)] dark:text-slate-300 font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-heading"
+                  >
+                    Cancel
+                  </button>
                   <button
                     type="submit"
-                    disabled={editLoading}
-                    className="w-full bg-[var(--gold-2)] dark:bg-white text-[var(--text-primary)] dark:text-slate-900 py-3.5 rounded-xl font-bold text-sm hover:-translate-y-0.5 disabled:opacity-50 transition-all font-heading mt-2"
+                    disabled={editLoading || !editUsername.trim()}
+                    className="flex-1 bg-[var(--gold-2)] dark:bg-white text-[var(--text-primary)] dark:text-slate-900 py-3.5 rounded-xl font-bold text-sm hover:-translate-y-0.5 disabled:opacity-50 transition-all font-heading shadow-md"
                   >
-                    {editLoading ? 'Sending OTP...' : 'Continue & Verify'}
+                    {editLoading ? 'Saving...' : 'Save Changes'}
                   </button>
-                </form>
-              ) : (
-                <form onSubmit={handleVerifyEditOtp} className="space-y-5">
-                  <p className="text-sm text-[var(--text-secondary)] dark:text-slate-400 text-center">
-                    We've sent an OTP to your<br/>registered mobile number.
-                  </p>
-                  <div className="flex justify-between gap-2">
-                    {[...Array(6)].map((_, i) => (
-                      <input
-                        key={`edit-otp-${i}`}
-                        type="text"
-                        maxLength="1"
-                        value={editOtp[i] || ''}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, '');
-                          const newOtp = editOtp.split('');
-                          newOtp[i] = val;
-                          setEditOtp(newOtp.join('').slice(0,6));
-                          if (val && e.target.nextSibling) {
-                            e.target.nextSibling.focus();
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Backspace' && !editOtp[i] && e.target.previousSibling) {
-                            e.target.previousSibling.focus();
-                          }
-                        }}
-                        className="w-12 h-14 bg-[var(--bg-subtle)] dark:bg-slate-950/50 border border-[var(--border-color)] dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-[var(--border-glow)] dark:focus:ring-amber-500/20 focus:border-[var(--text-gold)] dark:focus:border-amber-500 outline-none transition-all text-2xl font-black text-[var(--text-primary)] dark:text-white text-center"
-                      />
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditStep(1)}
-                      className="text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
-                    >
-                      Back
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRequestEditOtp()}
-                      disabled={editCooldown > 0 || editLoading}
-                      className="text-xs font-bold text-[var(--text-gold)] dark:text-amber-400 disabled:text-[var(--text-muted)] dark:disabled:text-slate-400 transition-colors"
-                    >
-                      {editCooldown > 0 ? `Resend OTP in 00:${editCooldown.toString().padStart(2, '0')}` : 'Resend OTP'}
-                    </button>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={editLoading || editOtp.length !== 6}
-                    className="w-full bg-[var(--gold-2)] dark:bg-gradient-to-r dark:from-amber-500 dark:to-amber-600 text-[var(--text-primary)] dark:text-white py-3.5 rounded-xl font-bold text-sm hover:-translate-y-0.5 disabled:opacity-50 transition-all font-heading"
-                  >
-                    {editLoading ? 'Verifying...' : 'Verify & Save'}
-                  </button>
-                </form>
-              )}
+                </div>
+              </form>
             </div>
           </div>
         </div>

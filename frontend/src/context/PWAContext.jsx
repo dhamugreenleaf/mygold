@@ -7,34 +7,87 @@ export const PWAProvider = ({ children }) => {
   const [isInstalled, setIsInstalled] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [deferredPrompt, setDeferredPrompt] = useState(() => (typeof window !== 'undefined' ? window.deferredPwaPrompt || null : null));
 
-  // Check if app is already running as an installed standalone PWA
-  useEffect(() => {
-    const isStandalone =
+  const isIOS = typeof navigator !== 'undefined' && (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+
+  const isRunningStandalone = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+    return (
       window.matchMedia('(display-mode: standalone)').matches ||
       window.navigator.standalone === true ||
-      document.referrer.includes('android-app://');
-
-    if (isStandalone) {
-      setIsInstalled(true);
-    }
+      document.referrer.includes('android-app://')
+    );
   }, []);
 
-  // Suppress browser's install popup completely & track network status
+  // Check whether the app is currently running as installed standalone app or in web browser
+  const checkInstallStatus = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    // 1. If running in standalone window (installed PWA app window), hide the install button
+    if (isRunningStandalone()) {
+      setIsInstalled(true);
+      return;
+    }
+
+    // 2. In normal web browser (mobile Chrome, Safari, etc.), always show the install button
+    setIsInstalled(false);
+  }, [isRunningStandalone]);
+
+  // Initial detection & event listeners
   useEffect(() => {
+    checkInstallStatus();
+
+    // Listen to display-mode changes (e.g. launched in standalone vs browser tab)
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const handleDisplayModeChange = (e) => {
+      if (e.matches) {
+        setIsInstalled(true);
+      } else {
+        checkInstallStatus();
+      }
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleDisplayModeChange);
+    } else if (mediaQuery.addListener) {
+      mediaQuery.addListener(handleDisplayModeChange);
+    }
+
+    // When the browser window regains focus or visibility (e.g. after uninstalling outside browser)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkInstallStatus();
+      }
+    };
+
+    window.addEventListener('focus', checkInstallStatus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     const handleBeforeInstallPrompt = (e) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
-      // Stash the event so it can be triggered later.
+      // Stash the event so it can be triggered later
+      window.deferredPwaPrompt = e;
       setDeferredPrompt(e);
+
+      // Browser only fires beforeinstallprompt if the PWA is NOT installed.
+      // If the app was uninstalled, this immediately reveals the install button again.
+      if (!isRunningStandalone()) {
+        setIsInstalled(false);
+      }
       return false;
     };
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setIsInstallModalOpen(false);
-      toast.success('Aurum Vault installed successfully! 🪙', { duration: 4500 });
+      setDeferredPrompt(null);
+      window.deferredPwaPrompt = null;
+      toast.success('MyGold installed successfully! 🪙', { duration: 4500 });
     };
 
     const handleOnline = () => {
@@ -57,38 +110,58 @@ export const PWAProvider = ({ children }) => {
     window.addEventListener('offline', handleOffline);
 
     return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleDisplayModeChange);
+      } else if (mediaQuery.removeListener) {
+        mediaQuery.removeListener(handleDisplayModeChange);
+      }
+      window.removeEventListener('focus', checkInstallStatus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [checkInstallStatus, isRunningStandalone]);
 
   const closeInstallModal = useCallback(() => {
     setIsInstallModalOpen(false);
   }, []);
 
-  // Click install icon → show our custom in-app modal only
+  // Click install icon → show our custom in-app modal
   const promptInstall = useCallback(() => {
     setIsInstallModalOpen(true);
   }, []);
 
-  // User confirmed install in our modal → close modal & show success
+  // User confirmed install in our modal → trigger native prompt or platform guide
   const executeInstall = useCallback(async () => {
-    setIsInstallModalOpen(false);
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setIsInstalled(true);
+      setIsInstallModalOpen(false);
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setIsInstalled(true);
+          setDeferredPrompt(null);
+          window.deferredPwaPrompt = null;
+        }
+      } catch (err) {
+        console.warn('[PWA Prompt Warning]:', err);
       }
-      setDeferredPrompt(null);
+    } else if (isIOS) {
+      // Keep modal open so iOS instructions can be read
+      toast('Tap the Share button ⎋ below, then "Add to Home Screen" ➕', {
+        icon: '📲',
+        duration: 6000,
+      });
     } else {
-      toast.success('Aurum Vault app added! You can pin this tab or bookmark it for quick access. 🪙', {
-        duration: 5000,
+      setIsInstallModalOpen(false);
+      toast('Click "Install" or "Open in app" in your browser address bar (top right) ↗️', {
+        icon: '📲',
+        duration: 6000,
       });
     }
-  }, [deferredPrompt]);
+  }, [deferredPrompt, isIOS]);
 
   return (
     <PWAContext.Provider
@@ -96,6 +169,8 @@ export const PWAProvider = ({ children }) => {
         isInstalled,
         isOnline,
         isInstallModalOpen,
+        isIOS,
+        hasPrompt: !!deferredPrompt,
         closeInstallModal,
         promptInstall,
         executeInstall,

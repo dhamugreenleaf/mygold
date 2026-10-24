@@ -127,7 +127,11 @@ export const runMigrations = async () => {
       try {
         const [userIndexes] = await sequelize.query('SHOW INDEX FROM users;').catch(() => [[]]);
         for (const idx of userIndexes) {
-          if (['_2', '_3', '_4'].some((suf) => idx.Key_name.endsWith(suf))) {
+          // Drop unique constraints on username so multiple users can have the same name
+          if (idx.Column_name === 'username' && idx.Non_unique === 0 && idx.Key_name !== 'PRIMARY') {
+            await sequelize.query(`ALTER TABLE users DROP INDEX \`${idx.Key_name}\`;`).catch(() => {});
+            console.log(`[Migration] Dropped unique index on users.username: ${idx.Key_name}`);
+          } else if (['_2', '_3', '_4'].some((suf) => idx.Key_name.endsWith(suf))) {
             await sequelize.query(`ALTER TABLE users DROP INDEX \`${idx.Key_name}\`;`).catch(() => {});
             console.log(`[Migration] Cleaned duplicate index on users: ${idx.Key_name}`);
           }

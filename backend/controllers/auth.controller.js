@@ -70,7 +70,7 @@ export const updatePreferences = async (req, res, next) => {
   }
 };
 
-export const requestProfileUpdateOtp = async (req, res, next) => {
+export const updateProfile = async (req, res, next) => {
   try {
     if (!req.user || !req.user.id) {
       return res.status(401).json({ success: false, message: 'Unauthenticated.' });
@@ -80,30 +80,42 @@ export const requestProfileUpdateOtp = async (req, res, next) => {
     const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
-    // Validate if username is taken
-    if (username && username !== user.username) {
-      const taken = await User.findOne({ where: sequelize.where(sequelize.fn('lower', sequelize.col('username')), username.toLowerCase()) });
-      if (taken) return res.status(400).json({ success: false, message: 'Username is already taken.' });
+    // Validate if username is provided and changed
+    if (username && username.trim() !== user.username) {
+      const cleanUsername = String(username).trim();
+      if (cleanUsername.length < 3) {
+        return res.status(400).json({ success: false, message: 'Username must be at least 3 characters.' });
+      }
+      if (!/^[a-zA-Z\s]+$/.test(cleanUsername)) {
+        return res.status(400).json({ success: false, message: 'Username can only contain alphabets and spaces.' });
+      }
+      user.username = cleanUsername;
     }
 
-    if (!user.phone) {
-      return res.status(400).json({ success: false, message: 'Please add a mobile number to your account before updating profile.' });
+    if (email !== undefined) {
+      const cleanEmail = email ? String(email).trim() : null;
+      if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+      }
+      user.email = cleanEmail;
     }
 
-    // Send OTP and attach pending changes metadata
-    await requestOtp(user.phone, 'PROFILE_UPDATE', { username, email });
+    await user.save();
 
     return res.status(200).json({
       success: true,
-      message: 'OTP sent to your registered mobile number.',
+      message: 'Profile updated successfully.',
+      data: { user: user.toSafeObject() }
     });
   } catch (error) {
-    return res.status(error.statusCode || 400).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
-      message: error.message || 'Failed to request OTP.',
+      message: error.message || 'Failed to update profile.',
     });
   }
 };
+
+export const requestProfileUpdateOtp = updateProfile;
 
 export const verifyProfileUpdateOtp = async (req, res, next) => {
   try {
@@ -205,12 +217,6 @@ export const requestRegisterOtp = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit mobile number.' });
     }
 
-    // Check if username is taken
-    const existingUser = await User.findOne({ where: { username: cleanUsername } });
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: 'Username is already taken.' });
-    }
-
     // Check if mobile is already registered
     const existingMobileUser = await findUserByMobile(normMobile);
     if (existingMobileUser) {
@@ -294,10 +300,13 @@ export const login = async (req, res, next) => {
     const cleanIdentifier = String(username).trim();
     const cleanPassword = String(password);
 
-    // 1. Try finding by username (case-insensitive)
-    let user = await User.findOne({ 
-      where: sequelize.where(sequelize.fn('lower', sequelize.col('username')), cleanIdentifier.toLowerCase()) 
-    });
+    let user = null;
+
+    // 1. Try finding by mobile number first (unique per account)
+    const normMobile = normalizeMobile(cleanIdentifier);
+    if (normMobile && normMobile.length === 10) {
+      user = await findUserByMobile(normMobile);
+    }
 
     // 2. If not found and input contains @, try finding by email
     if (!user && cleanIdentifier.includes('@')) {
@@ -306,11 +315,27 @@ export const login = async (req, res, next) => {
       });
     }
 
-    // 3. If not found, try finding by mobile number
+    // 3. Try finding by username: if multiple users have this name, select the one whose password matches
     if (!user) {
-      const normMobile = normalizeMobile(cleanIdentifier);
-      if (normMobile && normMobile.length === 10) {
-        user = await findUserByMobile(normMobile);
+      const matchingUsers = await User.findAll({ 
+        where: sequelize.where(sequelize.fn('lower', sequelize.col('username')), cleanIdentifier.toLowerCase()) 
+      });
+
+      if (matchingUsers.length === 1) {
+        user = matchingUsers[0];
+      } else if (matchingUsers.length > 1) {
+        for (const u of matchingUsers) {
+          if (u.password_hash) {
+            const matches = await u.comparePassword(cleanPassword);
+            if (matches) {
+              user = u;
+              break;
+            }
+          }
+        }
+        if (!user) {
+          user = matchingUsers[0];
+        }
       }
     }
 
@@ -461,6 +486,9 @@ export const requestForgotUsernameOtp = async (req, res, next) => {
   try {
     const { mobile } = req.body;
     const normMobile = normalizeMobile(mobile);
+    if (!normMobile || normMobile.length !== 10) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit mobile number.' });
+    }
 
     const user = await findUserByMobile(normMobile);
     if (!user) {
@@ -477,11 +505,24 @@ export const requestForgotUsernameOtp = async (req, res, next) => {
 
 export const verifyForgotUsernameOtp = async (req, res, next) => {
   try {
-    const { mobile, otp } = req.body;
+    const { mobile, otp, accessToken } = req.body;
     const normMobile = normalizeMobile(mobile);
-    const cleanOtp = String(otp).trim();
+    if (!normMobile) {
+      return res.status(400).json({ success: false, message: 'Mobile number is required.' });
+    }
 
-    await verifyOtp(normMobile, cleanOtp, 'FORGOT_USERNAME');
+    if (accessToken) {
+      const verification = await verifyMsg91AccessToken(accessToken);
+      if (!verification.valid) {
+        return res.status(400).json({ success: false, message: verification.message || 'Invalid MSG91 verification token.' });
+      }
+    } else {
+      const cleanOtp = String(otp || '').trim();
+      if (!cleanOtp) {
+        return res.status(400).json({ success: false, message: 'OTP is required.' });
+      }
+      await verifyOtp(normMobile, cleanOtp, 'FORGOT_USERNAME');
+    }
 
     const user = await findUserByMobile(normMobile);
     if (!user) {
@@ -504,10 +545,13 @@ export const requestChangeMobileOtp = async (req, res, next) => {
   try {
     const { newMobile } = req.body;
     const normMobile = normalizeMobile(newMobile);
+    if (!normMobile || normMobile.length !== 10) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit mobile number.' });
+    }
 
-    const existing = await User.findOne({ where: { phone: normMobile } });
+    const existing = await findUserByMobile(normMobile);
     if (existing && existing.id !== req.user.id) {
-      return res.status(400).json({ success: false, message: 'Mobile number already registered.' });
+      return res.status(400).json({ success: false, message: 'Mobile number already registered to another account.' });
     }
 
     await requestOtp(normMobile, 'CHANGE_MOBILE');
@@ -520,12 +564,34 @@ export const requestChangeMobileOtp = async (req, res, next) => {
 
 export const verifyChangeMobileOtp = async (req, res, next) => {
   try {
-    const { newMobile, otp } = req.body;
+    const { newMobile, otp, accessToken } = req.body;
     const normMobile = normalizeMobile(newMobile);
+    if (!normMobile || normMobile.length !== 10) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit mobile number.' });
+    }
 
-    await verifyOtp(normMobile, otp, 'CHANGE_MOBILE');
+    if (accessToken) {
+      const verification = await verifyMsg91AccessToken(accessToken);
+      if (!verification.valid) {
+        return res.status(400).json({ success: false, message: verification.message || 'Invalid MSG91 verification token.' });
+      }
+    } else {
+      const cleanOtp = String(otp || '').trim();
+      if (!cleanOtp) {
+        return res.status(400).json({ success: false, message: 'OTP is required.' });
+      }
+      await verifyOtp(normMobile, cleanOtp, 'CHANGE_MOBILE');
+    }
+
+    const existing = await findUserByMobile(normMobile);
+    if (existing && existing.id !== req.user.id) {
+      return res.status(400).json({ success: false, message: 'Mobile number already registered to another account.' });
+    }
 
     const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
     user.phone = normMobile;
     user.mobile_verified = true;
     await user.save();
@@ -642,6 +708,35 @@ export const verifyForgotMsg91 = async (req, res, next) => {
   } catch (error) {
     const statusCode = error.statusCode || 500;
     return res.status(statusCode).json({ success: false, message: error.message || 'Verification failed.' });
+  }
+};
+
+export const verifyForgotUsernameMsg91 = async (req, res, next) => {
+  try {
+    const { mobile, accessToken } = req.body;
+    if (!mobile || !accessToken) {
+      return res.status(400).json({ success: false, message: 'Mobile and MSG91 accessToken are required.' });
+    }
+
+    const verification = await verifyMsg91AccessToken(accessToken);
+    if (!verification.valid) {
+      return res.status(400).json({ success: false, message: verification.message || 'Invalid MSG91 verification token.' });
+    }
+
+    const normMobile = normalizeMobile(mobile);
+    const user = await findUserByMobile(normMobile);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No registered account found with this mobile number.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Username recovered.',
+      data: { username: user.username }
+    });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({ success: false, message: error.message || 'Failed to verify token.' });
   }
 };
 

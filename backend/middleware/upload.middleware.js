@@ -27,22 +27,27 @@ const storage = multer.diskStorage({
   },
 });
 
-// Strict MIME type and extension validation
 const fileFilter = (req, file, cb) => {
-  const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
+  const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.jfif'];
   const allowedMimeTypes = [
     'application/pdf',
     'image/jpeg',
     'image/png',
     'image/webp',
     'image/jpg',
+    'image/heic',
+    'image/heif',
+    'image/jfif',
+    'image/pjpeg',
+    'image/x-png',
+    'application/octet-stream',
   ];
 
   const ext = path.extname(file.originalname).toLowerCase();
   const isExtAllowed = allowedExtensions.includes(ext);
-  const isMimeAllowed = allowedMimeTypes.includes(file.mimetype);
+  const isMimeAllowed = allowedMimeTypes.includes(file.mimetype) || (file.mimetype && file.mimetype.startsWith('image/'));
 
-  if (isExtAllowed && isMimeAllowed) {
+  if (isExtAllowed || isMimeAllowed) {
     return cb(null, true);
   }
 

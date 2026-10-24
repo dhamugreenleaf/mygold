@@ -97,8 +97,16 @@ export const requestForgotUsernameOtp = async (mobile) => {
   return res.data;
 };
 
-export const verifyForgotUsernameOtp = async (mobile, otp) => {
-  const res = await api.post('/auth/forgot-username/verify-otp', { mobile, otp });
+export const verifyForgotUsernameOtp = async (mobile, otp, accessToken = null) => {
+  const payload = { mobile };
+  if (accessToken) payload.accessToken = accessToken;
+  if (otp) payload.otp = otp;
+  const res = await api.post('/auth/forgot-username/verify-otp', payload);
+  return res.data;
+};
+
+export const verifyForgotUsernameMsg91 = async (payload) => {
+  const res = await api.post('/auth/forgot-username/verify-msg91', payload);
   return res.data;
 };
 
@@ -122,8 +130,11 @@ export const requestChangeMobileOtp = async (newMobile) => {
   return res.data;
 };
 
-export const verifyChangeMobileOtp = async (newMobile, otp) => {
-  const res = await api.post('/auth/mobile/change/verify-otp', { newMobile, otp });
+export const verifyChangeMobileOtp = async (newMobile, otp, accessToken = null) => {
+  const payload = { newMobile };
+  if (accessToken) payload.accessToken = accessToken;
+  if (otp) payload.otp = otp;
+  const res = await api.post('/auth/mobile/change/verify-otp', payload);
   return res.data;
 };
 
@@ -148,8 +159,13 @@ export const updateUserPreferences = async ({ city, state, country }) => {
   return res.data;
 };
 
+export const updateProfile = async ({ username, email }) => {
+  const res = await api.put('/users/profile', { username, email });
+  return res.data;
+};
+
 export const requestProfileUpdateOtp = async ({ username, email }) => {
-  const res = await api.post('/users/profile/update/request', { username, email });
+  const res = await api.put('/users/profile', { username, email });
   return res.data;
 };
 

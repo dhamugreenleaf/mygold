@@ -594,12 +594,19 @@ export const AddGold = () => {
             {t('documentsSection')}
           </h2>
           
-          <div className="flex items-center justify-between py-1">
-            <div>
-              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">
+          <div className="flex items-center justify-between gap-3 py-1.5">
+            <div className="min-w-0 flex-1">
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block truncate">
                 {t('invoiceDoc')}
               </span>
-              <span className="text-[10px] text-slate-500">
+              <span 
+                className={`text-[11px] block truncate mt-0.5 ${
+                  invoiceFile 
+                    ? 'text-amber-700 dark:text-amber-400 font-semibold font-mono' 
+                    : 'text-slate-500 dark:text-slate-400 font-medium'
+                }`}
+                title={invoiceFile ? invoiceFile.name : ''}
+              >
                 {invoiceFile ? invoiceFile.name : (isTamil ? 'பில் புகைப்படம் அல்லது PDF' : 'Bill receipt photo or PDF')}
               </span>
             </div>
@@ -608,23 +615,30 @@ export const AddGold = () => {
               ref={invoiceInputRef} 
               onChange={(e) => handleFileChange(e, setInvoiceFile, setInvoicePreview)} 
               className="hidden" 
-              accept=".pdf,image/*" 
+              accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.webp,.heic" 
             />
             <button 
               type="button" 
               onClick={() => invoiceInputRef.current?.click()} 
-              className="text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-500/30 px-3.5 py-2 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer"
+              className="shrink-0 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 border border-amber-500/30 px-3.5 py-2 rounded-xl transition-all active:scale-95 cursor-pointer font-heading"
             >
               {invoiceFile ? (isTamil ? 'மாற்றுக' : 'Change') : t('uploadBtn')}
             </button>
           </div>
 
-          <div className="flex items-center justify-between py-1 border-t border-slate-100 dark:border-slate-800/80">
-            <div>
-              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">
+          <div className="flex items-center justify-between gap-3 py-1.5 border-t border-slate-100 dark:border-slate-800/80">
+            <div className="min-w-0 flex-1">
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block truncate">
                 {t('jewelleryPhoto')}
               </span>
-              <span className="text-[10px] text-slate-500">
+              <span 
+                className={`text-[11px] block truncate mt-0.5 ${
+                  jewelleryFile 
+                    ? 'text-amber-700 dark:text-amber-400 font-semibold font-mono' 
+                    : 'text-slate-500 dark:text-slate-400 font-medium'
+                }`}
+                title={jewelleryFile ? jewelleryFile.name : ''}
+              >
                 {jewelleryFile ? jewelleryFile.name : (isTamil ? 'நகையின் புகைப்படம்' : 'Jewellery ornament image')}
               </span>
             </div>
@@ -633,12 +647,12 @@ export const AddGold = () => {
               ref={jewelleryInputRef} 
               onChange={(e) => handleFileChange(e, setJewelleryFile, setJewelleryPreview)} 
               className="hidden" 
-              accept="image/*" 
+              accept="image/*,.jpg,.jpeg,.png,.webp,.heic" 
             />
             <button 
               type="button" 
               onClick={() => jewelleryInputRef.current?.click()} 
-              className="text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-500/30 px-3.5 py-2 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer"
+              className="shrink-0 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 border border-amber-500/30 px-3.5 py-2 rounded-xl transition-all active:scale-95 cursor-pointer font-heading"
             >
               {jewelleryFile ? (isTamil ? 'மாற்றுக' : 'Change') : t('uploadBtn')}
             </button>

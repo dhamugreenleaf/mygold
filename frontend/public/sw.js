@@ -100,7 +100,14 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(async () => {
           const cached = (await caches.match('/index.html')) || (await caches.match('/'));
-          return cached || fetch(request);
+          if (cached) return cached;
+          return new Response(
+            '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>MyGold</title></head><body style="background:#0b0f19;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h2>Loading MyGold...</h2><p>Please check your connection and reload.</p><button onclick="window.location.reload()" style="background:#d99a00;color:#0b0f19;border:none;padding:10px 20px;border-radius:8px;font-weight:bold;cursor:pointer;">Retry</button></div></body></html>',
+            {
+              status: 200,
+              headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            }
+          );
         })
     );
     return;

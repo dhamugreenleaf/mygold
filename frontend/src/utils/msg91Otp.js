@@ -56,9 +56,7 @@ export const initSendOtpWidget = async (mobile, { onSuccess, onFailure } = {}) =
   const formattedMobile = formatIndianMobile(mobile);
 
   if (isWidgetInitialized && window.configuration) {
-    window.configuration.identifier = formattedMobile;
-    if (onSuccess) window.configuration.success = onSuccess;
-    if (onFailure) window.configuration.failure = onFailure;
+    if (formattedMobile) window.configuration.identifier = formattedMobile;
     return true;
   }
 
@@ -71,21 +69,30 @@ export const initSendOtpWidget = async (mobile, { onSuccess, onFailure } = {}) =
         window.configuration = {
           widgetId: WIDGET_ID,
           tokenAuth: TOKEN_AUTH,
-          identifier: formattedMobile,
           exposeMethods: true,
           success: (data) => {
-            console.log('[MSG91 Global Success Callback]:', data);
-            if (onSuccess) onSuccess(data);
+            try {
+              console.log('[MSG91 Global Success]:', data);
+              if (onSuccess) onSuccess(data);
+            } catch (err) {
+              console.warn('[MSG91 Global Success Handler warning]:', err);
+            }
           },
           failure: (error) => {
-            const errStr = String(error?.message || error || '');
-            if (errStr.toLowerCase().includes('captcha') || errStr.toLowerCase().includes('already been rendered')) {
-              return;
-            }
-            console.warn('[MSG91 Global Failure Callback]:', error);
-            if (onFailure) onFailure(error);
+            try {
+              const errStr = String(error?.message || error || '');
+              if (errStr.toLowerCase().includes('captcha') || errStr.toLowerCase().includes('already been rendered')) {
+                return;
+              }
+              console.warn('[MSG91 Global Failure]:', error);
+              if (onFailure) onFailure(error);
+            } catch (_) {}
           },
         };
+
+        if (formattedMobile) {
+          window.configuration.identifier = formattedMobile;
+        }
 
         try {
           window.initSendOTP(window.configuration);
@@ -218,11 +225,6 @@ export const verifyOtpViaWidget = (mobile, otp) => {
       reject(new Error(msg));
     };
 
-    // Attach callbacks to global configuration
-    if (window.configuration) {
-      window.configuration.success = handleSuccess;
-      window.configuration.failure = handleFailure;
-    }
 
     if (typeof window.verifyOtp === 'function') {
       try {

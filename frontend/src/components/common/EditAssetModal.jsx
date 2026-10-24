@@ -400,7 +400,7 @@ export const EditAssetModal = ({ isOpen, onClose, purchase, onUpdated }) => {
                 </span>
                 <input
                   type="file"
-                  accept="image/*,application/pdf"
+                  accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.webp,.heic"
                   onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
                   className="hidden"
                 />
@@ -418,7 +418,7 @@ export const EditAssetModal = ({ isOpen, onClose, purchase, onUpdated }) => {
                 </span>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.jpg,.jpeg,.png,.webp,.heic"
                   onChange={(e) => setJewelFile(e.target.files?.[0] || null)}
                   className="hidden"
                 />
