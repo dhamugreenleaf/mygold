@@ -18,8 +18,7 @@ export const PWAProvider = ({ children }) => {
     if (typeof window === 'undefined') return false;
     return (
       window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone === true ||
-      document.referrer.includes('android-app://')
+      window.navigator.standalone === true
     );
   }, []);
 
